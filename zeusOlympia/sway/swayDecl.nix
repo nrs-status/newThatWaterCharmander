@@ -72,8 +72,8 @@ in
         printDir = "~/daguerre_brick/rockwelllcdcalc1972";
       in
       (pkgs.lib.mkOptionDefault {
-        "${modifier}+z" = "exec kitty nix develop ${frontArmToPlane}#sieyes";
-        "${modifier}+q" = "exec kitty nix develop github:nrs-status/newFrontArmToPlane#sieyes";
+        "${modifier}+z" = "exec ${pkgs.kitty} nix develop ${frontArmToPlane}#sieyes";
+        "${modifier}+q" = "exec ${pkgs.kitty} nix develop github:nrs-status/newFrontArmToPlane#sieyes";
         "${modifier}+Shift+backslash" = "splith";
         "${modifier}+minus" = "splitv";
         #"${modifier}+z" = "exec killall -SIGUSR1 .waybar-wrapped";
