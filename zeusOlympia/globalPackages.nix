@@ -14,6 +14,7 @@
       ripgrep
       eza
       bat
+    brightnessctl
       pciutils # for debugging drivers and hardware
     ];
 }
