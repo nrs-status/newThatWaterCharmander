@@ -1,4 +1,4 @@
-{ pkgs, localLib, frontArmToPlane, ... }: {
+{ pkgs, localLib, frontArmToPlane, pkgsLib, ... }: {
   environment.systemPackages = with pkgs; [
     grim # screenshot tool
     slurp # allows selecting a piece of screen for screenshot
@@ -26,7 +26,7 @@
         swayConfigDeriv = localLib.mkSwayConfig {
           inherit pkgs;
           swayNixConfig = import ./swayDecl.nix {
-            inherit pkgs frontArmToPlane;
+            inherit pkgs frontArmToPlane pkgsLib;
             waybarCommand = "${pkgs.waybar} --config ${waybarConfigDeriv}";
           };
         };
