@@ -1,8 +1,8 @@
-{ pkgsLib, ... }:
 {
   frontArmToPlane,
   waybarCommand,
   pkgs,
+  pkgsLib,
   ...
 }:
 let
