@@ -1,3 +1,4 @@
+{ pkgsLib, ... }:
 {
   frontArmToPlane,
   waybarCommand,
@@ -71,9 +72,9 @@ in
       let
         printDir = "~/daguerre_brick/rockwelllcdcalc1972";
       in
-      (pkgs.lib.mkOptionDefault {
-        "${modifier}+z" = "exec ${pkgs.kitty} nix develop ${frontArmToPlane}#sieyes";
-        "${modifier}+q" = "exec ${pkgs.kitty} nix develop github:nrs-status/newFrontArmToPlane#sieyes";
+      (pkgsLib.mkOptionDefault {
+        "${modifier}+z" = "exec ${pkgsLib.getExe pkgs.kitty} nix develop ${frontArmToPlane}#sieyes";
+        "${modifier}+q" = "exec ${pkgsLib.getExe pkgs.kitty} nix develop github:nrs-status/newFrontArmToPlane#sieyes";
         "${modifier}+Shift+backslash" = "splith";
         "${modifier}+minus" = "splitv";
         #"${modifier}+z" = "exec killall -SIGUSR1 .waybar-wrapped";
@@ -89,8 +90,8 @@ in
         "${modifier}+plus" = "scratchpad show";
         "${modifier}+Shift+a" = "focus child";
         #hex color getter/picker; grab color; pipette
-        "${modifier}+r" =
-          ''exec grim -g "$(slurp -p)" -t ppm - | convert - -format '%[pixel:p{0,0}]' txt:- | tail -n 1 | cut -d ' ' -f 4 | wl-copy'';
+        # "${modifier}+r" =
+        #   ''exec grim -g "$(slurp -p)" -t ppm - | convert - -format '%[pixel:p{0,0}]' txt:- | tail -n 1 | cut -d ' ' -f 4 | wl-copy'';
       });
 
     startup = [
