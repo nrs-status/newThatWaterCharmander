@@ -14,8 +14,8 @@
         "https://nix-community.cachix.org"
       ];
       trusted-public-keys = [
-        "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-      ]; # binary cache for haskell.nix
+        "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=" # key for binary cache for haskell.nix
+      ]; 
     };
     extraOptions = ''
       experimental-features = nix-command flakes

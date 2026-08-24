@@ -1,40 +1,6 @@
-{ waybarCommand, pkgs, ... }:
+{ frontArmToPlane, waybarCommand, pkgs, ... }:
 let
   gruvbox = import ./gruvboxColors.nix;
-  lockCommand = builtins.concatStringsSep " " (with gruvbox;
-    let rO = pkgslib.removePrefix "#"; # remove Octothorpe
-    in [
-      "exec ${pkgs.swaylock-effects}/bin/swaylock"
-      "--screenshots"
-      "--clock"
-      "--indicator"
-      "--fade-in 1"
-      "--font 'Iosevka'"
-      "--inside-color ${rO dark.bg}"
-      "--inside-clear-color ${rO light.yellow.bright}"
-      "--inside-caps-lock-color ${rO light.orange.bright}"
-      "--inside-ver-color ${rO light.purple.bright}"
-      "--inside-wrong-color ${rO light.red.bright}"
-      "--key-hl-color ${rO dark.cyan.bright}"
-      "--line-color ${rO dark.bg}"
-      "--line-clear-color ${rO dark.bg}"
-      "--line-caps-lock-color ${rO dark.bg}"
-      "--line-ver-color ${rO dark.bg}"
-      "--line-wrong-color ${rO dark.bg}"
-      "--ring-color ${rO light.cyan.bright}"
-      "--ring-clear-color ${rO dark.yellow.bright}"
-      "--ring-caps-lock-color ${rO dark.orange.bright}"
-      "--ring-ver-color ${rO dark.purple.bright}"
-      "--ring-wrong-color ${rO dark.red.normal}"
-      "--separator-color ${rO dark.bg}"
-      "--text-color ${rO dark.fg}"
-      "--text-clear-color ${rO dark.fg}"
-      "--text-caps-lock-color ${rO dark.fg}"
-      "--text-ver-color ${rO dark.fg}"
-      "--text-wrong-color ${rO dark.fg}"
-      "--effect-pixelate 15"
-      "--effect-blur 7x5"
-    ]);
 in {
   enable = true;
   config = rec {
@@ -97,6 +63,7 @@ in {
 
     keybindings = let printDir = "~/daguerre_brick/rockwelllcdcalc1972";
     in (pkgs.lib.mkOptionDefault {
+        "${modifier}+Return+z" = "exec kitty nix develop ${frontArmToPlane}#sieyes";
       "${modifier}+Shift+backslash" = "splith";
       "${modifier}+minus" = "splitv";
       "${modifier}+z" = "exec killall -SIGUSR1 .waybar-wrapped";
