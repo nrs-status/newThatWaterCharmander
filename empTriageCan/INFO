@@ -1,0 +1,6 @@
+78
+profiles
+
+The root of the paths in these module sets is assumed to be the directory of modules (zeusOlympia)
+
+WARNING: this file is special-cased by the mkNixOS function through its filename (INFO)
