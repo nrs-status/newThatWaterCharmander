@@ -27,7 +27,8 @@
         nixosSystemArgsPath = ./empTriageCan;
         inputsForModulesExceptPkgs = {
           inherit pkgsLib baseLib localLib;
-          frontArmToPlane = inputs.frontArmToPlane;
+          frontArmToPlane = inputs.frontArmToPlane; #for adding to the registry and specifying the default shell in sway
+          peachRampSkateboard = inputs.peachRampSkateboard; #for adding to the registry
         };
       };
     };

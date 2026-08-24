@@ -1,4 +1,4 @@
-{ pkgs }:
+{ pkgsLib, pkgs }:
 {
         settings = [
           {
@@ -40,10 +40,10 @@
             backlight = {
               format = "{icon}";
               format-icons = ["<U+F06E9>" "<U+F1A4E>" "<U+F1A4F>" "<U+F1A50>" "<U+F1A51>" "<U+F1A52>" "<U+F1A53>" "<U+F1A54>" "<U+F1A55>" "<U+F1A56>" "<U+F06E8>"];
-              on-scroll-up = "${pkgs.brightnessctl} set +10%";
-              on-scroll-down = "${pkgs.brightnessctl} set 10%-";
-              on-click-right = "${pkgs.brightnessctl} set 100%";
-              on-click-middle = "${pkgs.brightnessctl} set 0%";
+              on-scroll-up = "${pkgsLib.getExe pkgs.brightnessctl} set +10%";
+              on-scroll-down = "${pkgsLib.getExe pkgs.brightnessctl} set 10%-";
+              on-click-right = "${pkgsLib.getExe pkgs.brightnessctl} set 100%";
+              on-click-middle = "${pkgsLib.getExe pkgs.brightnessctl} set 0%";
             };
             #"custom/keyboard-layout"
             network = {

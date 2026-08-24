@@ -1,3 +1,4 @@
+{ frontArmToPlane, peachRampSkateboard, ... }:
 {
   nix = {
     gc = {
@@ -20,5 +21,11 @@
     extraOptions = ''
       experimental-features = nix-command flakes
     '';
+
+    registry = {
+      frontArmToPlane.flake = frontArmToPlane;
+      peachRampSkateboard.flake = peachRampSkateboard;
+      thatWaterCharmander.flake = "github:nrs-status/newThatWaterCharmander";
+    };
   };
 }

@@ -22,7 +22,7 @@
         waybarConfigDeriv = localLib.mkWaybarConfig {
           inherit pkgs;
           waybarStyle = import ./waybarStyle.nix;
-          waybarNixConfig = import ./waybarDecl.nix { inherit pkgs; };
+          waybarNixConfig = import ./waybarDecl.nix { inherit pkgs pkgsLib; };
         };
         swayConfigDeriv = localLib.mkSwayConfig {
           inherit pkgs;
