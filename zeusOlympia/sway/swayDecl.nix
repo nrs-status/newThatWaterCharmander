@@ -74,7 +74,7 @@ in
       in
       (pkgsLib.mkOptionDefault {
         "${modifier}+z" = "exec ${pkgsLib.getExe pkgs.kitty} nix develop ${frontArmToPlane}#sieyes";
-        "${modifier}+q" = "exec ${pkgsLib.getExe pkgs.kitty} nix develop github:nrs-status/newFrontArmToPlane#sieyes";
+        "${modifier}+Return" = "exec ${pkgsLib.getExe pkgs.kitty} nix develop ${frontArmToPlane}#sieyes";
         "${modifier}+Shift+backslash" = "splith";
         "${modifier}+minus" = "splitv";
         #"${modifier}+z" = "exec killall -SIGUSR1 .waybar-wrapped";
@@ -89,9 +89,10 @@ in
         "XF86AudioMute" = "exec --no-startup-id ${pkgs.pulseaudio}/bin/pactl set-sink-mute 0 toggle";
         "${modifier}+plus" = "scratchpad show";
         "${modifier}+Shift+a" = "focus child";
+
         #hex color getter/picker; grab color; pipette
-        # "${modifier}+r" =
-        #   ''exec grim -g "$(slurp -p)" -t ppm - | convert - -format '%[pixel:p{0,0}]' txt:- | tail -n 1 | cut -d ' ' -f 4 | wl-copy'';
+        "${modifier}+r" =
+          ''exec grim -g "$(slurp -p)" -t ppm - | convert - -format '%[pixel:p{0,0}]' txt:- | tail -n 1 | cut -d ' ' -f 4 | wl-copy'';
       });
 
     startup = [
