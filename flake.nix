@@ -3,7 +3,7 @@
     hmFlake.url = "github:nix-community/home-manager"; # the main branch is at version 26.11 at the time of creation of this flake. needs to be the same as nixpkgs, do not unpin without handling a possible change of versions or mismatch with nixpkgs because mocking home-manager to create the sway and waybar configs requires home-manager to work properly
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     peachRampSkateboard.url = "github:nrs-status/newPeachRampSkateboard";
-    frontArmToPlane.url = "github:nrs-status/frontArmToPlane";
+    frontArmToPlane.url = "github:nrs-status/newFrontArmToPlane";
   };
 
   outputs =
