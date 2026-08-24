@@ -3,6 +3,7 @@
   waybarCommand,
   pkgs,
   pkgsLib,
+config,
   ...
 }:
 let
@@ -70,14 +71,14 @@ in
 
     keybindings =
       let
+
         printDir = "~/daguerre_brick/rockwelllcdcalc1972";
       in
       (pkgsLib.mkOptionDefault {
-        "${modifier}+z" = "exec ${pkgsLib.getExe pkgs.kitty} nix develop ${frontArmToPlane}#sieyes";
         "${modifier}+Return" = "exec ${pkgsLib.getExe pkgs.kitty} nix develop ${frontArmToPlane}#sieyes";
         "${modifier}+Shift+backslash" = "splith";
         "${modifier}+minus" = "splitv";
-        #"${modifier}+z" = "exec killall -SIGUSR1 .waybar-wrapped";
+        "${modifier}+z" = "exec killall -SIGUSR1 .waybar-wrapped";
 
         "${modifier}+p" = "exec --no-startup-id ${pkgs.grim}/bin/grim ${printDir}/$(date +%F-%T).png";
         "Print" =
@@ -96,11 +97,14 @@ in
       });
 
     startup = [
-      { command = "exec swaymsg 'workspace 1; exec firefox' "; }
-      { command = "exec swaymsg 'workspace 2; exec kitty' "; }
+      { command = "exec swaymsg 'workspace 1; exec ${pkgsLib.getExe pkgs.firefox}' "; }
       {
-        command = ''exec kitty --title Scratchpad; for_window [title="Scratchpad"] move scratchpad'';
+        command = "exec swaymsg 'workspace 2; exec ${pkgsLib.getExe pkgs.kitty} nix develop ${frontArmToPlane}#sieyes' ";
       }
+      {
+        command = ''exec ${pkgsLib.getExe pkgs.kitty} --title Scratchpad nix develop ${frontArmToPlane}#sieyes; for_window [title="Scratchpad"] move scratchpad'';
+      }
+      { command = "exec swaymsg 'exec ${pkgsLib.getExe config.programs.waybar.package}'"; }
     ];
 
     menu = "${pkgs.wofi}/bin/wofi --show drun";
