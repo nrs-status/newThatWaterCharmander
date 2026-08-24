@@ -7,6 +7,7 @@
     wev # xev analogue
     remontoire # list keybindings
     killall # for toggling swaybar
+    wlsunset # orange shift
   ];
 
   programs = {
