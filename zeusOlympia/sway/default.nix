@@ -8,6 +8,7 @@
     remontoire # list keybindings
     killall # for toggling swaybar
     wlsunset # orange shift
+    wvkbd # virtual keyboard
   ];
 
   programs = {
