@@ -29,11 +29,11 @@
         "peachRampSkateboard": "peachRampSkateboard"
       },
       "locked": {
-        "lastModified": 1787549060,
-        "narHash": "sha256-xPAqw1G0HsPQDeCfQSwwzvOIWsZ8Rq5jz5O+tDNLQAo=",
+        "lastModified": 1787633064,
+        "narHash": "sha256-OYutgRdCzK2waoQatDn3i93bKvceLHKalXVkeQfwsHU=",
         "owner": "nrs-status",
         "repo": "newFrontArmToPlane",
-        "rev": "48720345756acc66e7eb0c676c1ce5af1a3c4175",
+        "rev": "960614ad8cc5f1d038883410cb91d6da3dea1c21",
         "type": "github"
       },
       "original": {
@@ -156,6 +156,22 @@
         "type": "github"
       }
     },
+    "nixpkgs_6": {
+      "locked": {
+        "lastModified": 1782175435,
+        "narHash": "sha256-EMzXKmnOtBQ2MnvpiNOm7E+kOMvdPrIKaeg52Tip2Uk=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "89570f24e97e614aa34aa9ab1c927b6578a43775",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "nixvimFlake": {
       "inputs": {
         "flake-parts": "flake-parts",
@@ -217,7 +233,26 @@
         "frontArmToPlane": "frontArmToPlane",
         "hmFlake": "hmFlake",
         "nixpkgs": "nixpkgs_4",
-        "peachRampSkateboard": "peachRampSkateboard_2"
+        "peachRampSkateboard": "peachRampSkateboard_2",
+        "sopsFlake": "sopsFlake"
+      }
+    },
+    "sopsFlake": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_6"
+      },
+      "locked": {
+        "lastModified": 1786629091,
+        "narHash": "sha256-gkig4nPi1CWc4Z50GBsjE4ygSE7hMpl/TwID2an2Cck=",
+        "owner": "Mic92",
+        "repo": "sops-nix",
+        "rev": "a8627b21b9107c5711c96b84f32a9a4b3d45295f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Mic92",
+        "repo": "sops-nix",
+        "type": "github"
       }
     },
     "systems": {
