@@ -25,7 +25,6 @@
     registry = {
       frontArmToPlane.flake = frontArmToPlane;
       peachRampSkateboard.flake = peachRampSkateboard;
-      thatWaterCharmander.flake = "github:nrs-status/newThatWaterCharmander";
     };
   };
 }
