@@ -127,9 +127,6 @@ in
           };
           command = "opacity 0.90";
         }
-        {
-          command = "opacity 0.90";
-        }
       ];
     };
   };
