@@ -99,6 +99,7 @@ in
       });
 
     startup = [
+      { command = "mako"; }
       { command = "exec swaymsg 'workspace 1; exec ${pkgsLib.getExe pkgs.firefox}' "; }
       {
         command = "exec swaymsg 'workspace 2; exec ${pkgsLib.getExe pkgs.kitty} nix develop ${frontArmToPlane}#sieyes' ";
@@ -126,9 +127,6 @@ in
           command = "opacity 0.90";
         }
         {
-          criteria = {
-            class = "(?i)(emacs)";
-          };
           command = "opacity 0.90";
         }
       ];

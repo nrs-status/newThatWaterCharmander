@@ -17,5 +17,6 @@
     brightnessctl # for controlling system light
     pciutils # for debugging drivers and hardware
     age #encryption
+    sops #secrets manager
   ];
 }
