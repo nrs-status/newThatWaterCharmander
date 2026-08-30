@@ -3,7 +3,7 @@
   waybarCommand,
   pkgs,
   pkgsLib,
-config,
+  config,
   ...
 }:
 let
@@ -95,7 +95,8 @@ in
         "${modifier}+r" =
           ''exec grim -g "$(slurp -p)" -t ppm - | convert - -format '%[pixel:p{0,0}]' txt:- | tail -n 1 | cut -d ' ' -f 4 | wl-copy'';
 
-          "${modifier}+l" = "exec sh -c 'pkill -x wlsunset || { ${pkgsLib.getExe pkgs.wlsunset} -T 1 -t 0 & }'";
+        "${modifier}+l" =
+          "exec sh -c 'pkill -x wlsunset || { ${pkgsLib.getExe pkgs.wlsunset} -T 1 -t 0 & }'";
       });
 
     startup = [
@@ -105,8 +106,8 @@ in
         command = "exec swaymsg 'workspace 2; exec ${pkgsLib.getExe pkgs.kitty} nix develop ${frontArmToPlane}#sieyes' ";
       }
       {
-        command = ''exec ${pkgsLib.getExe pkgs.kitty} --title Scratchpad nix develop ${frontArmToPlane}#sieyes; for_window [title="Scratchpad"] move scratchpad'';
-        #for_window [title="Scratchpad"] resize set width 1366 height 675
+        command = ''exec ${pkgsLib.getExe pkgs.kitty} --title Scratchpad nix develop ${frontArmToPlane}#sieyes; for_window [title="Scratchpad"] resize set width 1366 height 675; for_window [title="Scratchpad"] move scratchpad'';
+        
       }
       { command = "exec swaymsg 'exec ${pkgsLib.getExe config.programs.waybar.package}'"; }
     ];
@@ -127,6 +128,7 @@ in
           };
           command = "opacity 0.90";
         }
+
       ];
     };
   };
