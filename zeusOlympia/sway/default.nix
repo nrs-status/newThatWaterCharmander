@@ -9,6 +9,7 @@
     killall # for toggling swaybar
     wlsunset # orange shift
     wvkbd # virtual keyboard
+    libnotify #contains `notify-send`, used to send notifications via `mako`
   ];
 
   programs = {
