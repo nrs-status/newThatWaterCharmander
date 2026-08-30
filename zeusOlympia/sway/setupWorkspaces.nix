@@ -14,7 +14,7 @@ pkgs.writeShellApplication {
     WIDTH=1366
     HEIGHT=765
 
-    swaymsg exec kitty
+    swaymsg exec ${pkgsLib.getExe pkgs.kitty}
     sleep 0.5 # Wait for the new window to appear and gain focus
     swaymsg resize set width "$WIDTH" height "$HEIGHT"
     sleep 0.2 # Small delay to let the resize apply before moving off-screen
