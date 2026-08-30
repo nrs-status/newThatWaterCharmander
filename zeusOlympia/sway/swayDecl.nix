@@ -105,7 +105,8 @@ in
         command = "exec swaymsg 'workspace 2; exec ${pkgsLib.getExe pkgs.kitty} nix develop ${frontArmToPlane}#sieyes' ";
       }
       {
-        command = ''exec ${pkgsLib.getExe pkgs.kitty} --title Scratchpad nix develop ${frontArmToPlane}#sieyes; for_window [title="Scratchpad"] move scratchpad; for_window [title="Scratchpad"] resize set width 1366 height 675'';
+        command = ''exec ${pkgsLib.getExe pkgs.kitty} --title Scratchpad nix develop ${frontArmToPlane}#sieyes; for_window [title="Scratchpad"] move scratchpad'';
+        #for_window [title="Scratchpad"] resize set width 1366 height 675
       }
       { command = "exec swaymsg 'exec ${pkgsLib.getExe config.programs.waybar.package}'"; }
     ];
