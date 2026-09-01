@@ -75,7 +75,12 @@ in
         printDir = "~/daguerre_brick/rockwelllcdcalc1972";
       in
       (pkgsLib.mkOptionDefault {
-        "${modifier}+Return" = "exec ${pkgsLib.getExe pkgs.kitty} nix develop ${frontArmToPlane}#sieyes";
+        # use the `frontArmToPlane` flake-registry entry (see nix.nix) instead of
+        # interpolating the flake input: the latter yields a /nix/store copy of
+        # the flake containing a `.git` entry, which makes `nix develop` treat it
+        # as a git repo owned by root and fail (libgit2 ownership check), killing
+        # the terminal instantly.
+        "${modifier}+Return" = "exec ${pkgsLib.getExe pkgs.kitty} nix develop frontArmToPlane#sieyes";
         "${modifier}+Shift+backslash" = "splith";
         "${modifier}+minus" = "splitv";
         "${modifier}+z" = "exec killall -SIGUSR1 .waybar-wrapped";
