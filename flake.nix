@@ -4,7 +4,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     sopsFlake.url = "github:Mic92/sops-nix";
     peachRampSkateboard.url = "github:nrs-status/newPeachRampSkateboard";
-    frontArmToPlane.url = "github:nrs-status/newFrontArmToPlane";
+    frontArmToPlane.url = "path:/home/sieyes/baghdad_plane/flakes/newFrontArmToPlane";
   };
 
   outputs =
