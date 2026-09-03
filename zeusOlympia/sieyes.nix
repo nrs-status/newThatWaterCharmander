@@ -27,11 +27,11 @@ pkgsLib.mkMerge [
           owner = "sieyes";
           mode = "0400";
         };
-        git.github.nrs-status.apiKey = {
+        "git/github/nrs-status/apiKey" = {
           owner = "sieyes";
           mode = "0400";
         };
-        git.github.nrs-status.credential = {
+        "git/github/nrs-status/credential" = {
           owner = "sieyes";
           mode = "0400";
         };
