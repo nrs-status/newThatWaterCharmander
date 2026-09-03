@@ -6,6 +6,11 @@
       spice-vdagentd.enable = true; #clipboard sync agent
     };
     users.users.root.initialPassword = "rootpwd";
+    users.users.vm-user = {
+      isNormalUser = true;
+      extraGroups = [ "wheel" ];
+      initialPassword = "userpwd";
+    };
     virtualisation = {
       diskSize = 30000;
       memorySize = 4096;
@@ -17,11 +22,10 @@
 
         #spice display + vdagent channel for clipboard sharing
         "-vga qxl" 
-        "-spice port=5901,addr=127.0.0.1,disable-ticketing=on"
+        "-spice port=5901,addr=127.0.0.1,disable-ticketing=on" #with this, you can run `remote-viewer "spice://127.0.0.1:5901"` to get a graphical interface
         "-device virtio-serial-pci"
         "-chardev spicevmc,id=vdagent0,name=vdagent"
         "-device virtserialport,chardev=vdagent0,name=com.redhat.spice.0"
-
       ];
     };
   };
