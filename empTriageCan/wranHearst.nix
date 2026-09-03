@@ -15,6 +15,7 @@ inputsForModulesExceptPkgs:
     "./sieyes.nix"
     "./wranHearst"
     "./nixpkgs.nix"
+    "./vm.nix"
   ];
 }
 
