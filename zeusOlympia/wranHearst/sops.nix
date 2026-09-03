@@ -11,19 +11,17 @@
   imports = [ sopsFlake.nixosModules.sops ];
   sops = {
     defaultSopsFile = "${frontArmToPlane.packages.x86_64-linux.secrets}/secrets.yaml";
-    sops = {
-      age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
-      secrets = {
-        OPENROUTER_API_KEY = {
-          owner = "sieyes";
-          mode = "0400";
-        };
-        GITHUB_API_KEY = {
-          owner = "sieyes";
-          mode = "0400";
-        };
+    age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+    secrets = {
+      OPENROUTER_API_KEY = {
+        owner = "sieyes";
+        mode = "0400";
+      };
+      GITHUB_API_KEY = {
+        owner = "sieyes";
+        mode = "0400";
       };
     };
-
   };
+
 }
