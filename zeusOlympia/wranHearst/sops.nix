@@ -15,7 +15,7 @@
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "oneshot";
-      ExecStartPre = "mkdir -p /root/.config/sops/age";
+      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /root/.config/sops/age";
       ExecStart = "${pkgsLib.getExe pkgs.ssh-to-age} -private-key -i /etc/ssh/ssh_host_ed25519_key";
       StandardOutput = "truncate:/root/.config/sops/age/keys.txt";
     };
