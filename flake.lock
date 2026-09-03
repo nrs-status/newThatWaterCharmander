@@ -29,8 +29,8 @@
         "peachRampSkateboard": "peachRampSkateboard"
       },
       "locked": {
-        "lastModified": 1788423025,
-        "narHash": "sha256-2drvsiipz6qFe8F0v/0fEa7QaXQX/8IZ9t75e3GmACU=",
+        "lastModified": 1788424236,
+        "narHash": "sha256-VlsPlCMxcgKHlCTiBkLPulyRXThwgo93Ql5A/Xzd4fs=",
         "path": "/home/sieyes/baghdad_plane/flakes/newFrontArmToPlane",
         "type": "path"
       },
