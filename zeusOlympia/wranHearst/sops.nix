@@ -10,14 +10,17 @@
     age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
   };
 
+  #ensures /root/.config/sops/age exists
+  systemd.tmpfiles.rules = [
+    "d /root/.config/sops/age 0700 root root - -"
+  ];
   systemd.services.hostSSHToAge = {
     description = "create an age key from the host ssh key in order to be able to decrypt fatp's secrets.yaml as root";
     wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-tmpiles-setup.service" ];
     serviceConfig = {
       Type = "oneshot";
-      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /root/.config/sops/age";
-      ExecStart = "${pkgsLib.getExe pkgs.ssh-to-age} -private-key -i /etc/ssh/ssh_host_ed25519_key";
-      StandardOutput = "truncate:/root/.config/sops/age/keys.txt";
+      ExecStart = "${pkgsLib.getExe pkgs.ssh-to-age} -private-key -i /etc/ssh/ssh_host_ed25519_key > /root/.config/sops/age/keys.txt";
     };
   };
 }
