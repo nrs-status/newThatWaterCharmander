@@ -18,5 +18,6 @@
     pciutils # for debugging drivers and hardware
     age #encryption
     sops #secrets manager
+    ssh-to-age #for turn host ssh key into age key for allowing root to decrypt with sops
   ];
 }
