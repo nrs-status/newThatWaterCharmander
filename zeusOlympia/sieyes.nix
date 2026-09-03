@@ -17,7 +17,7 @@
       derivExpr = frontArmToPlane.devShells.x86_64-linux.sieyes.inputDerivation;
     in
     {
-      wantedBy = [ "default.target" ];
+      wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "nix build --expr ${derivExpr} --no-link --print-out-paths";
