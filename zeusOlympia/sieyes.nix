@@ -39,7 +39,12 @@
         owner = "sieyes";
         mode = "0400";
       };
+      THATWATERCHARMANDER_PATH = {
+        owner = "sieyes";
+        mode = "0400";
+      };
     };
+
   };
 
 
