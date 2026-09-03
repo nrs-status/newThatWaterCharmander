@@ -1,52 +1,47 @@
-{ frontArmToPlane, ... }:
 {
-  users.users.sieyes = {
-    isNormalUser = true;
-    extraGroups = [
-      "wheel"
-      "docker"
-      "networkmanager"
-      "audio"
-      "video"
-    ];
-  };
+  pkgsLib,
+  localLib,
+  frontArmToPlane,
+  ...
+}:
+pkgsLib.mkMerge [
+  (localLib.mkShellCachingModule frontArmToPlane.devShells.x86_64-linux.sieyes)
 
-  #cache shell
-  systemd.user.services.cacheSieyesShell =
-    let
-      derivExpr = frontArmToPlane.devShells.x86_64-linux.sieyes.inputDerivation;
-    in
-    {
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = "nix build --expr ${derivExpr} --no-link --print-out-paths";
-
-        #don't compete with rest of login sequence
-        Nice = 19;
-        IOSchedulingClass = "idle";
-      };
+  {
+    users.users.sieyes = {
+      isNormalUser = true;
+      extraGroups = [
+        "wheel"
+        "docker"
+        "networkmanager"
+        "audio"
+        "video"
+      ];
     };
 
-  #secrets management; requires that the host enable to sops module
-  sops = {
-    secrets = {
-      OPENROUTER_API_KEY = {
-        owner = "sieyes";
-        mode = "0400";
+    #cache shell
+    #secrets management; requires that the host enable to sops module
+    sops = {
+      secrets = {
+        OPENROUTER_API_KEY = {
+          owner = "sieyes";
+          mode = "0400";
+        };
+        git.github.nrs-status.apiKey = {
+          owner = "sieyes";
+          mode = "0400";
+        };
+        git.github.nrs-status.credential = {
+          owner = "sieyes";
+          mode = "0400";
+        };
+        THATWATERCHARMANDER_PATH = {
+          owner = "sieyes";
+          mode = "0400";
+        };
       };
-      GITHUB_API_KEY = {
-        owner = "sieyes";
-        mode = "0400";
-      };
-      THATWATERCHARMANDER_PATH = {
-        owner = "sieyes";
-        mode = "0400";
-      };
+
     };
 
-  };
-
-
-
-}
+  }
+]
