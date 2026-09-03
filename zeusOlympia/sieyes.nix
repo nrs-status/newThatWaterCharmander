@@ -28,4 +28,22 @@
       };
     };
 
+  #secrets management; requires that the host enable to sops module
+  sops = {
+    defaultSopsFile = "${frontArmToPlane.packages.x86_64-linux.secrets}/secrets.yaml";
+    age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+    secrets = {
+      OPENROUTER_API_KEY = {
+        owner = "sieyes";
+        mode = "0400";
+        group = "users";
+      };
+      GITHUB_API_KEY = {
+        owner = "sieyes";
+        mode = "0400";
+        group = "users";
+      };
+    };
+  };
+
 }
