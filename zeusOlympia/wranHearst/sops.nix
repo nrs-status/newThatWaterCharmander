@@ -21,6 +21,7 @@
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${pkgsLib.getExe pkgs.ssh-to-age} -private-key -i /etc/ssh/ssh_host_ed25519_key > /root/.config/sops/age/keys.txt";
+      StandardOutput = "truncate:/root/.config/sops/age/keys.txt";
     };
   };
 }
