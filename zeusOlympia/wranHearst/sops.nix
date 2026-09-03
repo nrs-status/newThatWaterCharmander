@@ -20,7 +20,7 @@
     after = [ "systemd-tmpiles-setup.service" ];
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgsLib.getExe pkgs.ssh-to-age} -private-key -i /etc/ssh/ssh_host_ed25519_key > /root/.config/sops/age/keys.txt";
+      ExecStart = "${pkgsLib.getExe pkgs.ssh-to-age} -private-key -i /etc/ssh/ssh_host_ed25519_key";
       StandardOutput = "truncate:/root/.config/sops/age/keys.txt";
     };
   };
