@@ -1,4 +1,5 @@
-{ shell }:
+{ ... }:
+shell:
 {
   systemd.user.services."cache${shell.name}Shell" = {
     wantedBy = [ "multi-user.target" ];
