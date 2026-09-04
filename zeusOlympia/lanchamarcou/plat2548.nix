@@ -1,7 +1,7 @@
-#this user is inside a host config because unlike sieyes it isn't meant to be used anywhere else than on the `augtibcalcla`
+#this user is inside a host config because unlike sieyes it isn't meant to be used anywhere else than on the `lanchamarcou`
 { pkgs, ... }:
 {
-  users.users.soc7099 = {
+  users.users.plat2548 = {
     isNormalUser = true;
     extraGroups = [
       "wheel"

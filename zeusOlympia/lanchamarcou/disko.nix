@@ -1,4 +1,7 @@
+{ diskoFlake, ... }:
 {
+  imports = [ diskoFlake.nixosModules.disko ];
+
   disko.devices.disk.main = {
     device = "CHANGE";
     type = "disk";
@@ -14,33 +17,33 @@
             mountpoint = "/boot";
             mountOptions = [ "umask=0077" ];
           };
-          root = {
-            size = "100%";
-            content = {
-              type = "btrfs";
-              extraArgs = [ "-f" ]; # override existing partitions
-              subvolumes = {
-                "@" = {
-                  mountpoint = "/";
-                  mountOptions = [
-                    "compress=zstd" # files on volume are always compressed
-                    "noatime" # display recording file access time
-                  ];
-                };
-                "@nix" = {
-                  mountpoint = "/nix";
-                  mountOptions = [
-                    "compress=zstd" # files on volume are always compressed
-                    "noatime" # display recording file access time
-                  ];
-                };
-                "@persist" = {
-                  mountpoint = "/persist";
-                  mountOptions = [
-                    "compress=zstd"
-                    "noatime"
-                  ];
-                };
+        };
+        root = {
+          size = "100%";
+          content = {
+            type = "btrfs";
+            extraArgs = [ "-f" ]; # override existing partitions
+            subvolumes = {
+              "@" = {
+                mountpoint = "/";
+                mountOptions = [
+                  "compress=zstd" # files on volume are always compressed
+                  "noatime" # display recording file access time
+                ];
+              };
+              "@nix" = {
+                mountpoint = "/nix";
+                mountOptions = [
+                  "compress=zstd" # files on volume are always compressed
+                  "noatime" # display recording file access time
+                ];
+              };
+              "@persist" = {
+                mountpoint = "/persist";
+                mountOptions = [
+                  "compress=zstd"
+                  "noatime"
+                ];
               };
             };
           };

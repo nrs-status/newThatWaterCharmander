@@ -12,7 +12,7 @@
         "usbhid" # driver for usb keyboards, usb mice, etc.
         "usb_storage"
         "sd_mod" # driver for SATA/USB disks to appear as /dev/sda, /dev/sdb, etc.
-        "rtsx_pci_demo" # driver for sd card slot
+        "rtsx_pci_sdmmc" # driver for sd card slot
       ];
     };
     kernelModules = [ "kvm-amd" ];
