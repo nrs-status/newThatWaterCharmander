@@ -6,7 +6,7 @@
     diskoFlake.url = "github:nix-community/disko";
     impermanenceFlake.url = "github:nix-community/impermanence";
     peachRampSkateboard.url = "github:nrs-status/newPeachRampSkateboard";
-    frontArmToPlane.url = "path:/home/sieyes/baghdad_plane/flakes/newFrontArmToPlane";
+    frontArmToPlane.url = "github:nrs-status/newFrontArmToPlane";
   };
 
   outputs =
