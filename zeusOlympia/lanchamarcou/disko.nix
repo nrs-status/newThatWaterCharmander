@@ -3,7 +3,7 @@
   imports = [ diskoFlake.nixosModules.disko ];
 
   disko.devices.disk.main = {
-    device = "CHANGE";
+    device = "/dev/sda";
     type = "disk";
     content = {
       type = "gpt";
