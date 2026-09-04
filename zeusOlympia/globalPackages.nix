@@ -24,5 +24,6 @@
     fzf
     fd # `find` replacement
     trash-cli # `rm` replacement
+    btrfs-progs # utils for btrfs
   ];
 }
