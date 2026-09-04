@@ -47,14 +47,17 @@
         "peachRampSkateboard": "peachRampSkateboard"
       },
       "locked": {
-        "lastModified": 1788561546,
-        "narHash": "sha256-HOG7I/DXqoOYpCnkueu5TyoXqzwPT5AQ6CckK7aFvVY=",
-        "path": "/home/sieyes/baghdad_plane/flakes/newFrontArmToPlane",
-        "type": "path"
+        "lastModified": 1788563746,
+        "narHash": "sha256-SCDBzcjwy+CPi/5pcLERXBnq7OZC/NmSYxqqu1g/yFg=",
+        "owner": "nrs-status",
+        "repo": "newFrontArmToPlane",
+        "rev": "4833d62a39dc4eb4ebc8672719bf975156cb4f9f",
+        "type": "github"
       },
       "original": {
-        "path": "/home/sieyes/baghdad_plane/flakes/newFrontArmToPlane",
-        "type": "path"
+        "owner": "nrs-status",
+        "repo": "newFrontArmToPlane",
+        "type": "github"
       }
     },
     "hmFlake": {
