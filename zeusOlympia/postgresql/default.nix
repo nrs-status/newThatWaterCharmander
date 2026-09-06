@@ -5,7 +5,7 @@ let
   psql = "${pkgs.postgresql}/bin/psql";
 in
 {
-  services.postgresql = {
+  services.mypsql = {
     enable = true;
 
     ensureDatabases = [
