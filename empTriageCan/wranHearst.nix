@@ -16,7 +16,7 @@ inputsForModulesExceptPkgs:
     "./wranHearst"
     "./nixpkgs.nix"
     "./vm.nix"
-    "./postgresql.nix"
+    "./postgresql"
   ];
 }
 
