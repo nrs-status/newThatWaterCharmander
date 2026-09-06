@@ -8,12 +8,9 @@
   };
   environment.systemPackages = with pkgs; [
     vim
-    curl
     git
+    curl
     keyd # for monitoring keypress events
-    ripgrep
-    eza
-    bat
     brightnessctl # for controlling system light
     pciutils # for debugging drivers and hardware
     age #encryption
@@ -22,8 +19,23 @@
     unzip
     unrar
     fzf
+    btrfs-progs # utils for btrfs
+    postgresql
+
+    #replacements for standard unix tools
+    mlr # replaces awk/sed/cut for structured data editing
+    sd # sed replacement
     fd # `find` replacement
     trash-cli # `rm` replacement
-    btrfs-progs # utils for btrfs
+    ripgrep # `grep` replacement
+    eza # `ls` replacement
+    bat # `cat` replacement
+    dog # `dig` replacement
+    xh # `curl` replacement
+    broot # `tree` replacement
+    dust # `du` replacement
+    choose # `cut/awk` replacement
+    duf # `df` replacement
+    procs # `proc` replacement
   ];
 }
