@@ -5,7 +5,7 @@ let
   psql = "${pkgs.postgresql}/bin/psql";
 in
 {
-  services.mypsql = {
+  services.postgresql = {
     enable = true;
 
     ensureDatabases = [
@@ -18,7 +18,7 @@ in
     ];
   };
 
-  systemd.services.postgresql = {
+  systemd.services.mypsql = {
     after = [ "postgresql.service" ];
     requires = [ "postgresql.service" ];
     wantedBy = [ "multi-user.target" ];
