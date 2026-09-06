@@ -23,7 +23,7 @@
     postgresql
 
     #replacements for standard unix tools
-    mlr # replaces awk/sed/cut for structured data editing
+    miller # replaces awk/sed/cut for structured data editing
     sd # sed replacement
     fd # `find` replacement
     trash-cli # `rm` replacement
