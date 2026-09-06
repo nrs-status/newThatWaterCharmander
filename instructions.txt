@@ -1,0 +1,8 @@
+You are on a NixOS system. If you need tools, write a flake.nix file and run a shell from it.
+
+The `wranHearst` host declares a PostgreSQL service. Extend its tables with the content of `./schema.sql`
+
+
+Once you are done: 
+- Create a file called SUMMARY.md containing a step-by-step summary of all steps you have undertaken.
+- As the last thing you do, send a `notify-send` notification containing an extremely short description of your task, notifying the user that you've completed your task. The message must include the `git` branch you are located in.
