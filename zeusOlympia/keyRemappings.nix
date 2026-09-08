@@ -11,13 +11,13 @@
             capslock = "layer(custom2)";
             meta = "layer(custom2)";
             "a" = "overloadt(meta, a, 130)";
-            "s" = "overloadt(leftalt, s, 130)";
-            "d" = "overloadt(leftcontrol, d, 130)";
+            "s" = "overloadt(alt, s, 130)";
+            "d" = "overloadt(control, d, 130)";
             "f" = "overloadt(shift, f, 130)";
 
             "h" = "overloadt(shift, h, 130)";
-            "j" = "overloadt(rightcontrol, j, 130)";
-            "k" = "overloadt(rightalt, k, 130)";
+            "j" = "overloadt(control, j, 130)";
+            "k" = "overloadt(alt, k, 130)";
             "l" = "overloadt(meta, l, 130)";
 
             "1" = "!";
