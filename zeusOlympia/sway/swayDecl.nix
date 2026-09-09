@@ -100,7 +100,7 @@ in
         "${modifier}+r" =
           ''exec grim -g "$(slurp -p)" -t ppm - | convert - -format '%[pixel:p{0,0}]' txt:- | tail -n 1 | cut -d ' ' -f 4 | wl-copy'';
 
-        "${modifier}+l" =
+        "${modifier}+semicolon" =
           "exec sh -c 'pkill -x wlsunset || { ${pkgsLib.getExe pkgs.wlsunset} -T 1 -t 0 & }'";
       });
 
