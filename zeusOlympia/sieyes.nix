@@ -16,6 +16,7 @@ pkgsLib.mkMerge [
         "networkmanager"
         "audio"
         "video"
+        "keyd"
       ];
     };
 
