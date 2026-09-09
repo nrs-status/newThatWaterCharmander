@@ -35,7 +35,11 @@ pkgsLib.mkMerge [
           owner = "sieyes";
           mode = "0400";
         };
-        THATWATERCHARMANDER_PATH = {
+        "paths/wranHearst/thatWaterCharmander" = {
+          owner = "sieyes";
+          mode = "0400";
+        };
+        "paths/wranHearst/frontArmToPlane" = {
           owner = "sieyes";
           mode = "0400";
         };
