@@ -142,8 +142,11 @@ in
   # symbols) maps keycode 191 (<FK13>) to XF86Tools, and *no* keycode in the us
   # layout produces the F13 keysym (it is commented out in symbols/inet). Bind
   # the raw keycode instead of the keysym.
+  # NB: --no-repeat is required on the press binding: without it, sway re-runs
+  # the command on every keyboard-repeat event while rightalt (-> F13) is held,
+  # so the voice transcriber fires repeatedly instead of only once on press.
   extraConfig = ''
-    bindcode 191 exec --no-startup-id ${pkgsLib.getExe frontArmToPlane.packages.x86_64-linux.voice-input} start
-    bindcode --release 191 exec --no-startup-id ${pkgsLib.getExe frontArmToPlane.packages.x86_64-linux.voice-input} finish
+    bindcode --no-repeat 191 exec --no-startup-id ${pkgsLib.getExe frontArmToPlane.packages.x86_64-linux.voice-input} start
+    bindcode --no-repeat --release 191 exec --no-startup-id ${pkgsLib.getExe frontArmToPlane.packages.x86_64-linux.voice-input} finish
   '';
 }
