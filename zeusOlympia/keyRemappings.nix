@@ -8,7 +8,7 @@
         settings = {
           main = {
             leftcontrol = "capslock";
-            rightalt = "f13"; #keyd key names are lowercase; emitting evdev f13 (keycode 191), which sway sees as keysym F13. F13 is unused otherwise; this binding is for activating voice transcription
+            rightalt = "f13"; #keyd key names are lowercase; emitting evdev f13 (keycode 183), which sway sees as xkb keycode 191. NB: under sway's default xkb symbol set (inet(evdev)) keycode 191 yields the keysym XF86Tools, not F13, so sway binds it via `bindcode 191` (see sway/swayDecl.nix). F13 is unused otherwise; this binding is for activating voice transcription
             capslock = "layer(custom2)";
             meta = "layer(custom2)";
             "a" = "overloadt(meta, a, 130)";

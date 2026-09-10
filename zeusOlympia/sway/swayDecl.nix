@@ -136,8 +136,14 @@ in
 
   };
 
+  # keyd remaps rightalt to evdev F13 (keycode 183), which sway receives as xkb
+  # keycode 191. `bindsym F13` cannot work here: sway's keymap (layouts
+  # us,ca(fr),es under rules "evdev", which always appends the inet(evdev)
+  # symbols) maps keycode 191 (<FK13>) to XF86Tools, and *no* keycode in the us
+  # layout produces the F13 keysym (it is commented out in symbols/inet). Bind
+  # the raw keycode instead of the keysym.
   extraConfig = ''
-    bindsym F13 exec --no-startup-id ${pkgsLib.getExe frontArmToPlane.packages.x86_64-linux.voice-input} start
-    bindsym --release F13 exec --no-startup-id ${pkgsLib.getExe frontArmToPlane.packages.x86_64-linux.voice-input} finish
+    bindcode 191 exec --no-startup-id ${pkgsLib.getExe frontArmToPlane.packages.x86_64-linux.voice-input} start
+    bindcode --release 191 exec --no-startup-id ${pkgsLib.getExe frontArmToPlane.packages.x86_64-linux.voice-input} finish
   '';
 }
