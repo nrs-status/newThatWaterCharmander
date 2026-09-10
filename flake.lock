@@ -48,11 +48,11 @@
         "tellFlake": "tellFlake"
       },
       "locked": {
-        "lastModified": 1789013201,
-        "narHash": "sha256-dmL03DM7xZUstA48zEXiGFynug2ljaY94AfrjVIA43k=",
+        "lastModified": 1789014205,
+        "narHash": "sha256-8iFgCbgwwulBqu4sNhgcyMsB9+Nby5byaDRJOYYxdTE=",
         "owner": "nrs-status",
         "repo": "newFrontArmToPlane",
-        "rev": "afd9ac49d8c06baef10b82ec13049e17a845c3ae",
+        "rev": "308ace895aac6751c98d47019a36a61f5620d914",
         "type": "github"
       },
       "original": {
