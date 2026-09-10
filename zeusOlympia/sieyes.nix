@@ -1,11 +1,12 @@
 {
+  pkgs,
   pkgsLib,
   localLib,
   frontArmToPlane,
   ...
 }:
 pkgsLib.mkMerge [
-  (localLib.mkShellCachingModule frontArmToPlane.devShells.x86_64-linux.sieyes)
+  (localLib.mkShellCachingModule { inherit pkgs; shell = frontArmToPlane.devShells.x86_64-linux.sieyes; })
 
   {
     users.users.sieyes = {

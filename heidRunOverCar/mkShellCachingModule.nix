@@ -1,5 +1,5 @@
-{ pkgs, ... }:
-shell:
+{ ... }:
+{ shell, pkgs }:
 {
   systemd.user.services."cache${shell.name}Shell" = {
     wantedBy = [ "multi-user.target" ];
