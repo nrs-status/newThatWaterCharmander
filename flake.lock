@@ -48,11 +48,11 @@
         "tellFlake": "tellFlake"
       },
       "locked": {
-        "lastModified": 1789004660,
-        "narHash": "sha256-G+1v3ee2lh+r2+HzNxiJoagBN50VpyEhONxDTEBZT+4=",
+        "lastModified": 1789011436,
+        "narHash": "sha256-yJp77yb26meAtXJ5D6ziSotl5p1muCGnqpJY3vCFJW8=",
         "owner": "nrs-status",
         "repo": "newFrontArmToPlane",
-        "rev": "fc62d9692cd80d568686012ae3773701d14565b0",
+        "rev": "d50cba878b92dc1a8a37c14a63a5a93667851299",
         "type": "github"
       },
       "original": {
@@ -153,11 +153,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1788039129,
-        "narHash": "sha256-pa4Q0qErvCvzCaaUph7Sm37RhR4xvPrYI8Lgz6k85+A=",
+        "lastModified": 1788881743,
+        "narHash": "sha256-2V9GZGvPfrNzxFozhI9dcqV+c3QdA8YZrvAAzqEB+dI=",
         "owner": "NixOs",
         "repo": "nixpkgs",
-        "rev": "d2f67949798825fe853f7c5d0492b8bf016d3f88",
+        "rev": "d6524aaca2ff07876657ae2b323f24be4874944b",
         "type": "github"
       },
       "original": {
