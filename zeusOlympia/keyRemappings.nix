@@ -7,7 +7,7 @@
         settings = {
           main = {
             leftcontrol = "capslock";
-            rightcontrol = "layer(custom)";
+            rightcontrol = "F13"; #F13 is unused otherwise; this binding is for activating voice transcription
             capslock = "layer(custom2)";
             meta = "layer(custom2)";
             "a" = "overloadt(meta, a, 130)";

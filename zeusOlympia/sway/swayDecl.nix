@@ -107,7 +107,11 @@ in
     startup = [
       { command = "mako"; }
       { command = "exec swaymsg 'exec ${pkgsLib.getExe config.programs.waybar.package}'"; }
-      { command = "${pkgsLib.getExe (import ./setupWorkspaces.nix { inherit pkgs pkgsLib frontArmToPlane; })}"; }
+      {
+        command = "${pkgsLib.getExe (
+          import ./setupWorkspaces.nix { inherit pkgs pkgsLib frontArmToPlane; }
+        )}";
+      }
     ];
 
     menu = "${pkgs.wofi}/bin/wofi --show drun";
@@ -129,5 +133,11 @@ in
 
       ];
     };
+
   };
+
+  extraConfig = ''
+    bindsym F13 exec --no-startup-id ${pkgsLib.getExe frontArmToPlane.packages.x86_64-linux.voice-input} start
+    bindsym --release F13 exec --no-startup-id ${pkgsLib.getExe frontArmToPlane.packages.x86_64-linux.voice-input} finish
+  '';
 }
