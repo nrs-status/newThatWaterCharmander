@@ -9,6 +9,10 @@
       "/var/lib/NetworkManager"
       "/var/lib/systemd"
       "/var/lib/nixos"
+      # NetworkManager connection profiles (SSID/PSK for wlo1) live here; they
+      # must survive the root wipe or the machine boots with no network at all
+      # (observed: full boot to multi-user, but no IP ever assigned)
+      "/etc/NetworkManager/system-connections"
     ];
     files = [ "/etc/machine-id" ];
     users.plat2548 = {
