@@ -1,3 +1,4 @@
+#you can use `sudo keyd monitor` to monitor inputs
 {
   services.keyd = {
     enable = true;
@@ -7,7 +8,7 @@
         settings = {
           main = {
             leftcontrol = "capslock";
-            rightcontrol = "F13"; #F13 is unused otherwise; this binding is for activating voice transcription
+            rightalt = "F13"; #F13 is unused otherwise; this binding is for activating voice transcription
             capslock = "layer(custom2)";
             meta = "layer(custom2)";
             "a" = "overloadt(meta, a, 130)";
