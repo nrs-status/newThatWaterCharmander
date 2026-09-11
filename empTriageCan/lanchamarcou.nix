@@ -12,5 +12,6 @@ inputsForModulesExceptPkgs:
     "./vm.nix"
     "./lanchamarcou"
     "./bootIntrospection"
+    "./pxe"
   ];
 }

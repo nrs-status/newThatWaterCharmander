@@ -11,6 +11,7 @@ inputsForModulesExceptPkgs:
     "./nixpkgs.nix"
     "./vm.nix"
     "./augtibcalcla"
+    "./bootIntrospection"
 
   ];
 }
