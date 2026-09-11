@@ -3,7 +3,11 @@
   imports = [ diskoFlake.nixosModules.disko ];
 
   disko.devices.disk.main = {
-    device = "/dev/sda";
+    # stable path, NOT /dev/sda: when installing from a live USB the USB stick
+    # can be enumerated as sda, in which case running disko against /dev/sda
+    # wipes the installer medium (or worse). by-id never changes across boots.
+    # (HGST HTS541075A9E680 698G internal drive)
+    device = "/dev/disk/by-id/ata-HGST_HTS541075A9E680_JD1A001918018M";
     type = "disk";
     content = {
       type = "gpt";
