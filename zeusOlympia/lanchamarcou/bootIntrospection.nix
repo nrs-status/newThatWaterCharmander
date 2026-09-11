@@ -30,7 +30,7 @@
 #                            `journalctl -b -1` for the full previous log
 #   - if stage 2 is never reached: boot any live ISO and inspect the
 #     persistent data directly on disk:
-#         mount -o subvol=@persist /dev/sda2 /mnt
+#         mount -o subvol=@persist <volume> /mnt
 #         cat /mnt/boot-introspection/boots.log
 #         journalctl --directory=/mnt/var/log/journal
 #   - stage-1 failures: use the emergency shell offered by the initrd on
@@ -40,7 +40,6 @@
 #     partition (see ./impermanence.nix).
 {
   pkgs,
-  config,
   ...
 }:
 {
@@ -122,7 +121,7 @@
       fi
       [ "$found" = yes ] || echo "  (none)"
       echo
-      echo "old pre-rollback roots (kept 30d) are btrfs subvolumes under old_roots on /dev/sda2"
+      echo "old pre-rollback roots (kept 30d) are btrfs subvolumes under old_roots on <dedicated volume>"
     '')
   ];
 }
