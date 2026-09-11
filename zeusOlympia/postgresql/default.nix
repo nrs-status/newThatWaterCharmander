@@ -17,7 +17,7 @@ in
     ];
   };
 
-  systemd.services.postgresql = {
+  systemd.services.mypsql = {
     after = [ "postgresql.service" ];
     requires = [ "postgresql.service" ];
     wantedBy = [ "multi-user.target" ];
