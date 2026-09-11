@@ -25,6 +25,10 @@
 #      emergency shell on the console when stage 1 fails, making initrd
 #      failures (disk/disko/filesystem mismatches) debuggable interactively.
 #
+# The Python logic lives in sibling files, packaged with pkgs.writers:
+#   - ./recordBoot.py       -> `record-boot`, used by both systemd services
+#   - ./bootIntrospect.py   -> `boot-introspect`, the interactive helper
+#
 # How to introspect a failed boot:
 #   - next (working) boot:   `boot-introspect`  (helper packaged below), and
 #                            `journalctl -b -1` for the full previous log
@@ -42,6 +46,10 @@
   pkgs,
   ...
 }:
+let
+  recordBoot = pkgs.writers.writePython3Bin "record-boot" { } ./recordBoot.py; #record a successful or a failed boot attempt
+  bootIntrospect = pkgs.writers.writePython3Bin "boot-introspect" { } ./bootIntrospect.py; #It is used to read the logs recorded by recordBoot
+in
 {
   boot = {
     loader.timeout = 10; # show the boot menu instead of booting the default entry silently
@@ -62,18 +70,8 @@
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      ExecStart = "${recordBoot}/bin/record-boot attempt";
     };
-    path = [ pkgs.coreutils ];
-    script = ''
-      mkdir -p /persist/boot-introspection
-      {
-        printf '%s attempt boot_id=%s kernel=%s generation=%s\n' \
-          "$(date --iso-8601=seconds)" \
-          "$(cat /proc/sys/kernel/random/boot_id)" \
-          "$(uname -r)" \
-          "$(readlink -f /run/current-system 2>/dev/null || echo unknown)"
-      } >> /persist/boot-introspection/boots.log
-    '';
   };
 
   # only reached once sshd is actually running, i.e. the machine is remotely
@@ -87,41 +85,9 @@
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      ExecStart = "${recordBoot}/bin/record-boot success";
     };
-    path = [ pkgs.coreutils ];
-    script = ''
-      mkdir -p /persist/boot-introspection
-      {
-        printf '%s success boot_id=%s kernel=%s generation=%s\n' \
-          "$(date --iso-8601=seconds)" \
-          "$(cat /proc/sys/kernel/random/boot_id)" \
-          "$(uname -r)" \
-          "$(readlink -f /run/current-system 2>/dev/null || echo unknown)"
-      } >> /persist/boot-introspection/boots.log
-    '';
   };
 
-  environment.systemPackages = [
-    (pkgs.writeShellScriptBin "boot-introspect" ''
-      set -e
-      LOG=/persist/boot-introspection/boots.log
-      echo "== recorded boots ($LOG) =="
-      cat "$LOG" 2>/dev/null || echo "(no record found)"
-      echo
-      echo "== journald boots =="
-      journalctl --list-boots | tail -15
-      echo
-      echo "== boot attempts without matching success (failed boots) =="
-      found=no
-      if [ -f "$LOG" ]; then
-        for b in $(awk '$2=="attempt" {att[$3]=1} $2=="success" {ok[$3]=1} END {for (x in att) if (!(x in ok)) print x}' "$LOG"); do
-          found=yes
-          echo "  $b   (inspect with: journalctl --boot=$b)"
-        done
-      fi
-      [ "$found" = yes ] || echo "  (none)"
-      echo
-      echo "old pre-rollback roots (kept 30d) are btrfs subvolumes under old_roots on <dedicated volume>"
-    '')
-  ];
+  environment.systemPackages = [ bootIntrospect ];
 }
