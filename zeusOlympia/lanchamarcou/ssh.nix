@@ -1,3 +1,4 @@
+{ config, ... }:
 {
   services.openssh = {
     enable = true;
@@ -6,13 +7,12 @@
     };
   };
 
-  #the current host's own ssh host key is used as the authorized key for ssh
-  #access, for both plat2548 and root
-  users.users.plat2548.openssh.authorizedKeys.keys = [
-    (builtins.readFile ./sshHostKey.pub)
-  ];
-  users.users.root.openssh.authorizedKeys.keys = [
-    (builtins.readFile ./sshHostKey.pub)
-  ];
+  users.users = {
+    plat2548.openssh.authorizedKeys.keys = [
+      config.wranHearstPublicKey
+    ];
+    root.openssh.authorizedKeys.keys = [ config.wranHearstPublicKey ];
+  };
+
   networking.firewall.allowedTCPPorts = [ 22 ];
 }

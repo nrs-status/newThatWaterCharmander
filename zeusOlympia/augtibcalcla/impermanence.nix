@@ -11,7 +11,7 @@
       "/var/lib/nixos"
     ];
     files = [ "/etc/machine-id" ];
-    users.plat2548 = {
+    users.soc7099 = {
       directories = [ "testdir" ];
     };
   };
