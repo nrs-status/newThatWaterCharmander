@@ -42,16 +42,17 @@
     },
     "frontArmToPlane": {
       "inputs": {
+        "microvm": "microvm",
         "nixpkgs": "nixpkgs_2",
         "nixvimFlake": "nixvimFlake",
         "peachRampSkateboard": "peachRampSkateboard"
       },
       "locked": {
-        "lastModified": 1789109473,
-        "narHash": "sha256-vZcgRM7wAqKtA8sL6iMRrf2rBT2ngZF3iGV83POkp/Q=",
+        "lastModified": 1789112775,
+        "narHash": "sha256-FbBvmsw3JdSe3Bztw2pzewjosUn2GUKWxYH+OL0N9O4=",
         "owner": "nrs-status",
         "repo": "newFrontArmToPlane",
-        "rev": "862f0f1fbeb03d7dacb9b4ee40e9e9bd46708d94",
+        "rev": "5d9d4a883a002656b5ba7104cda2fe66276a0a6f",
         "type": "github"
       },
       "original": {
@@ -115,6 +116,28 @@
       "original": {
         "owner": "nix-community",
         "repo": "impermanence",
+        "type": "github"
+      }
+    },
+    "microvm": {
+      "inputs": {
+        "nixpkgs": [
+          "frontArmToPlane",
+          "nixpkgs"
+        ],
+        "spectrum": "spectrum"
+      },
+      "locked": {
+        "lastModified": 1789082121,
+        "narHash": "sha256-AS7YiRfU//W5a/+kHOWRrMI0mLuHQ9OQTVNfT6rUff4=",
+        "owner": "microvm-nix",
+        "repo": "microvm.nix",
+        "rev": "1b99da49e9d1c8f15fd4911f7b8d2c4375758dcd",
+        "type": "github"
+      },
+      "original": {
+        "owner": "microvm-nix",
+        "repo": "microvm.nix",
         "type": "github"
       }
     },
@@ -345,6 +368,22 @@
         "owner": "Mic92",
         "repo": "sops-nix",
         "type": "github"
+      }
+    },
+    "spectrum": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1785761586,
+        "narHash": "sha256-MWOMVqJJERwjQGgRIv8d6rlEBqbLM3VZWxHkNKIIZNw=",
+        "ref": "refs/heads/main",
+        "rev": "a7762d6f54b40560dd5255ce902e6e6a5d980fe9",
+        "revCount": 1416,
+        "type": "git",
+        "url": "https://spectrum-os.org/git/spectrum"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://spectrum-os.org/git/spectrum"
       }
     },
     "systems": {
