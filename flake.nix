@@ -37,5 +37,15 @@
           impermanenceFlake = inputs.impermanenceFlake;
         };
       };
+
+    # tooling-only shell (never part of the NixOS system configuration):
+    # used to test the sway config changes from this repo
+    devShells.x86_64-linux.default =
+    let
+      pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+    in
+    pkgs.mkShell {
+      packages = with pkgs; [ sway wtype jq ];
     };
+  };
 }
