@@ -22,8 +22,13 @@ in
   };
 
   systemd.services.mypsql = {
-    after = [ "postgresql.service" ];
-    requires = [ "postgresql.service" ];
+    # NB: order after postgresql-setup.service, not postgresql.service:
+    # postgresql.service reports readiness before ensureDatabases/ensureUsers
+    # (now run by postgresql-setup.service) have created the databases, so a
+    # fresh boot races and `psql -d doc` fails with 'database "doc" does not
+    # exist'. postgresql-setup.service already requires/after postgresql.service.
+    after = [ "postgresql-setup.service" ];
+    requires = [ "postgresql-setup.service" ];
     wantedBy = [ "multi-user.target" ];
 
     serviceConfig = {
@@ -40,6 +45,7 @@ in
       ${psql} -d doc -c 'ALTER TABLE nodes OWNER TO "sieyes"'
 
       # pi-json-span-processor ingestion schema (idempotent)
+      ${psql} -d pi -c 'ALTER DATABASE "pi" OWNER TO "sieyes"'
       ${psql} -d pi -f ${piStreamSchema}
       ${psql} -d pi -c 'ALTER TABLE pi_stream_spans OWNER TO "sieyes"'
       ${psql} -d pi -c 'ALTER TABLE pi_stream_sessions OWNER TO "sieyes"'

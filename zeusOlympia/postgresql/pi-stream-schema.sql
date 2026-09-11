@@ -15,8 +15,11 @@
 -- or, for a whole processor run, from the shell (dollar-quoted lines):
 --
 --   pi-json-span-processor < events.jsonl \
---     | jq -r '"SELECT pi_stream_ingest($json$" + . + "$json$::jsonb);"' \
+--     | jq -r '"SELECT pi_stream_ingest($json$" + tojson + "$json$::jsonb);"' \
 --     | psql -d pi -v ON_ERROR_STOP=1
+--
+-- (NB: use `tojson`, not `.` — jq cannot add a string and an object, so the
+-- naive `"...$json$" + . + "$json$..."` fails on every line.)
 
 CREATE TABLE IF NOT EXISTS pi_stream_spans (
     id              BIGSERIAL PRIMARY KEY,
