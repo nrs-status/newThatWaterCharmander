@@ -9,9 +9,11 @@
       "/var/lib/NetworkManager"
       "/var/lib/systemd"
       "/var/lib/nixos"
-      # NetworkManager connection profiles (SSID/PSK for wlo1) live here; they
-      # must survive the root wipe or the machine boots with no network at all
-      # (observed: full boot to multi-user, but no IP ever assigned)
+      # NetworkManager user-created connection profiles live here; they must
+      # survive the root wipe. The home wifi is additionally
+      # declared via `networking.networkmanager.ensureProfiles` in
+      # ./networking.nix, which re-seeds it under /run at every boot, so a
+      # fresh /persist can never leave the machine offline again
       "/etc/NetworkManager/system-connections"
     ];
     files = [ "/etc/machine-id" ];
@@ -39,6 +41,7 @@
       btrfs-progs
       coreutils
       findutils
+      util-linux # provides mount; without it the rollback service fails with "mount: command not found"
     ];
     script = ''
       if [ ! -b /dev/disk/by-partlabel/disk-main-root ]; then
