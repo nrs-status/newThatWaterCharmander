@@ -10,7 +10,6 @@ inputsForModulesExceptPkgs:
     "./virtualization.nix"
     "./nixpkgs.nix"
     "./vm.nix"
-    "./garage"
     "./lanchamarcou"
     "./bootIntrospection"
   ];
