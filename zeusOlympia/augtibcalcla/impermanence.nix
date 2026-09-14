@@ -1,7 +1,7 @@
 {
 
   environment.persistence."/persist" = {
-    users.plat7099 = {
+    users.soc7099 = {
       directories = [
         "persistent"
       ];
