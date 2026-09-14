@@ -2,11 +2,9 @@
 {
   options.wranHearstPublicKey = pkgsLib.mkOption { };
   config = {
-    wranHearstPublicKey = builtins.readFile /etc/ssh/ssh_host_ed25519_key.pub;
-    environment = {
-      variables = {
-        EDITOR = "nvim";
-      };
+    wranHearstPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF+Zkx82s6OTrx6Wk4qwC1b9RyiuTFBMW6MZHm32uKyJ root@nixos";
+    variables = {
+      EDITOR = "nvim";
     };
   };
 }
