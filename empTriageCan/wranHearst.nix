@@ -17,6 +17,7 @@ inputsForModulesExceptPkgs:
     "./nixpkgs.nix"
     "./vm.nix"
     "./postgresql"
+    "./avahi.nix"
   ];
 }
 

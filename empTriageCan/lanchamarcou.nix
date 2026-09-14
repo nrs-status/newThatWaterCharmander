@@ -13,5 +13,6 @@ inputsForModulesExceptPkgs:
     "./keyRemappings.nix"
     "./lanchamarcou"
     "./bootIntrospection"
+    "./avahi.nix"
   ];
 }

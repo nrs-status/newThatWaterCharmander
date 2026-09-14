@@ -13,6 +13,7 @@ inputsForModulesExceptPkgs:
     "./keyRemappings.nix"
     "./augtibcalcla"
     "./bootIntrospection"
+    "./avahi.nix"
 
   ];
 }
