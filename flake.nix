@@ -23,7 +23,8 @@
         hmFlake = inputs.hmFlake;
         hmMockVersion = "26.11"; # used to mock hm in order to construct the waybar and sway configs
         nixosSystemFn = inputs.nixpkgs.lib.nixosSystem;
-        makeColmenaHiveFn = inputs.colmenaFlake.colmena.lib.makeHive;
+        makeColmenaHiveFn = inputs.colmenaFlake.lib.makeHive;
+        nixpkgsFlake = inputs.nixpkgs; #required by colmena
       };
       systemArgs = {
         modulesPath = ./zeusOlympia;
