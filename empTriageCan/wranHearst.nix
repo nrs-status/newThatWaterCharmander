@@ -20,6 +20,7 @@ inputsForModulesExceptPkgs:
     "./forgejo"
     "./garage"
     "./harmonia"
+    "./vaultWarden"
     "./impermanence"
     "./avahi.nix"
   ];
