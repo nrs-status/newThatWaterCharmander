@@ -9,7 +9,13 @@
         "kierLeapMount"
       ];
       files = [
-        ".local/share/atuin/history.db"
+        
+        {
+          file = ".local/share/atuin/history.db";
+          parentDirectory = {
+            user = "sieyes";
+          };
+        }
       ];
     };
   };
