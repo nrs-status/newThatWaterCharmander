@@ -6,6 +6,7 @@
         "baghdadPlane"
         "daguerreBrick"
         "smithShirtCube"
+        "kierLeapMount"
       ];
     };
   };
