@@ -9,6 +9,7 @@
         "kierLeapMount"
       ];
       files = [
+        ".local/share/zoxide/db.zo"
         
         {
           file = ".local/share/atuin/history.db";
