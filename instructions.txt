@@ -1,9 +1,0 @@
-You are on a NixOS system. If you need tools, write a flake.nix file and run a shell from it.
-
-Extend the NixOS configuration for the three hosts in this repository, in such a way that there is a Telegraf module imported by the two hosts `augtibcalcla` and `lanchamarcou` that streams telemetry to tables created on `wranHearst`'s PostgreSQL server for each of these hosts
-
-Test everything works
-
-Once you are done: 
-- Create a file called SUMMARY.md containing a step-by-step summary of all steps you have undertaken.
-- As the last thing you do, send a `notify-send` notification containing an extremely short description of your task, notifying the user that you've completed your task. The message must include the `git` branch you are located in.
