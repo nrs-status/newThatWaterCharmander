@@ -14,6 +14,7 @@ inputsForModulesExceptPkgs:
     "./augtibcalcla"
     "./bootIntrospection"
     "./avahi.nix"
+    "./sway"
 
   ];
 }
