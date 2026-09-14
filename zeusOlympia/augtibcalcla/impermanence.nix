@@ -5,6 +5,9 @@
       directories = [
         "persistent"
       ];
+      files = [
+        ".local/share/atuin/history.db"
+      ];
     };
   };
 }

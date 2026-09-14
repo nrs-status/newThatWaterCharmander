@@ -8,6 +8,9 @@
         "smithShirtCube"
         "kierLeapMount"
       ];
+      files = [
+        ".local/share/atuin/history.db"
+      ];
     };
   };
 }
