@@ -3,7 +3,7 @@
   imports = [ diskoFlake.nixosModules.disko ];
 
   disko.devices.disk.main = {
-    device = "/dev/disk/by-uuid/a73a03e7-3159-4656-9e1b-95f92634b4f3";
+    device = "/dev/nvme0n1";
     type = "disk";
     content = {
       type = "gpt";
