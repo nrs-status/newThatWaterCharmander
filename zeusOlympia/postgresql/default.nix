@@ -80,4 +80,18 @@ in
 
   # the agent hosts need to reach the postgresql port over the LAN
   networking.firewall.allowedTCPPorts = [ 5432 ];
+
+  # advertise the postgresql server over mDNS (see ../avahi.nix) so the agent
+  # hosts can discover it as wranHearst.local instead of hardcoding addresses
+  services.avahi.extraServiceFiles.postgresql = ''
+    <?xml version="1.0" standalone='no'?><!--*-nxml-*-->
+    <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+    <service-group>
+      <name replace-wildcards="yes">postgresql on %h</name>
+      <service>
+        <type>_postgresql._tcp</type>
+        <port>5432</port>
+      </service>
+    </service-group>
+  '';
 }
