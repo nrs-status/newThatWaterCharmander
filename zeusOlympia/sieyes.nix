@@ -6,7 +6,10 @@
   ...
 }:
 pkgsLib.mkMerge [
-  (localLib.mkShellCachingModule { inherit pkgs; shell = frontArmToPlane.devShells.x86_64-linux.sieyes; })
+  (localLib.mkShellCachingModule {
+    inherit pkgs;
+    shell = frontArmToPlane.devShells.x86_64-linux.sieyes;
+  })
 
   {
     users.users.sieyes = {
@@ -25,23 +28,11 @@ pkgsLib.mkMerge [
     #secrets management; requires that the host enable to sops module
     sops = {
       secrets = {
-        OPENROUTER_API_KEY = {
+        "keys/openrouter" = {
           owner = "sieyes";
           mode = "0400";
         };
-        "git/github/nrs-status/apiKey" = {
-          owner = "sieyes";
-          mode = "0400";
-        };
-        "git/github/nrs-status/credential" = {
-          owner = "sieyes";
-          mode = "0400";
-        };
-        "paths/wranHearst/thatWaterCharmander" = {
-          owner = "sieyes";
-          mode = "0400";
-        };
-        "paths/wranHearst/frontArmToPlane" = {
+        "keys/git/github/nrs-status" = {
           owner = "sieyes";
           mode = "0400";
         };
