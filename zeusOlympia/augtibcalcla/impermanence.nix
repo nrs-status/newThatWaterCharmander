@@ -6,9 +6,9 @@
     hideMounts = true;
     directories = [
       "/var/log"
-      "/var/lib/NetworkManager"
       "/var/lib/systemd"
       "/var/lib/nixos"
+      "/etc/NetworkManager/system-connections" # NetworkManager user-created connection profiles live here
     ];
     files = [ "/etc/machine-id" ];
     users.soc7099 = {
@@ -35,6 +35,7 @@
       btrfs-progs
       coreutils
       findutils
+      util-linux # provides mount; without it the rollback service fails with "mount: command not found"
     ];
     script = ''
       if [ ! -b /dev/disk/by-partlabel/disk-main-root ]; then
@@ -44,10 +45,14 @@
 
       mkdir /btrfs_tmp
       mount /dev/disk/by-partlabel/disk-main-root /btrfs_tmp
-      if [[ -e /btrfs_tmp/root ]]; then
+      # the root subvolume is named `@` (see ./disko.nix), NOT `root`: with the
+      # wrong name this script used to silently do nothing on every boot (and
+      # leave a stray empty `root` subvolume behind), so the root volume was
+      # never actually wiped
+      if [[ -e /btrfs_tmp/@ ]]; then
           mkdir -p /btrfs_tmp/old_roots
-          timestamp=$(date --date="@$(stat -c %Y /btrfs_tmp/root)" "+%Y-%m-%-d_%H:%M:%S")
-          mv /btrfs_tmp/root "/btrfs_tmp/old_roots/$timestamp"
+          timestamp=$(date --date="@$(stat -c %Y /btrfs_tmp/@)" "+%Y-%m-%-d_%H:%M:%S")
+          mv /btrfs_tmp/@ "/btrfs_tmp/old_roots/$timestamp"
       fi
 
       delete_subvolume_recursively() {
@@ -62,7 +67,7 @@
           delete_subvolume_recursively "$i"
       done
 
-      btrfs subvolume create /btrfs_tmp/root
+      btrfs subvolume create /btrfs_tmp/@
       umount /btrfs_tmp
     '';
   };
