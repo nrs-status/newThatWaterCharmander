@@ -15,6 +15,7 @@ inputsForModulesExceptPkgs:
     "./bootIntrospection"
     "./avahi.nix"
     "./sway"
+    "./impermanence"
 
   ];
 }
