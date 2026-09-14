@@ -1,5 +1,10 @@
 { pkgs, ... }:
 let
+  # credentials for the telegraf telemetry stream (see ../telegraf): the
+  # agent hosts augtibcalcla / lanchamarcou insert into this database
+  telegrafCredentials = import ./telegraf-credentials.nix;
+  telegrafSchema =
+    pkgs.writeText "telegraf-schema.sql" (builtins.readFile ./telegraf-schema.sql);
   docSchema = pkgs.writeText "doc-schema.sql" (builtins.readFile ./doc-schema.sql);
   # schema + ingest function for the JSON-lines span stream produced by
   # pi-json-span-processor (see newFrontArmToPlane/pi-json-span-processor/SPEC.md)
@@ -11,9 +16,22 @@ in
   services.postgresql = {
     enable = true;
 
+    # telegraf streams telemetry over the network from the agent hosts, so
+    # listen on all interfaces and let the telegraf role authenticate with a
+    # password (scram-sha-256) from private LAN ranges; the trailing default
+    # rules appended by the module keep localhost peer/md5 access working
+    enableTCPIP = true;
+    authentication = ''
+      host  ${telegrafCredentials.telegrafDatabase} ${telegrafCredentials.telegrafUser} 10.0.0.0/8       scram-sha-256
+      host  ${telegrafCredentials.telegrafDatabase} ${telegrafCredentials.telegrafUser} 172.16.0.0/12   scram-sha-256
+      host  ${telegrafCredentials.telegrafDatabase} ${telegrafCredentials.telegrafUser} 192.168.0.0/16  scram-sha-256
+      host  ${telegrafCredentials.telegrafDatabase} ${telegrafCredentials.telegrafUser} ::1/128         scram-sha-256
+    '';
+
     ensureDatabases = [
       "doc"
       "pi"
+      telegrafCredentials.telegrafDatabase
     ];
 
     ensureUsers = [
@@ -50,6 +68,16 @@ in
       ${psql} -d pi -c 'ALTER TABLE pi_stream_spans OWNER TO "sieyes"'
       ${psql} -d pi -c 'ALTER TABLE pi_stream_sessions OWNER TO "sieyes"'
       ${psql} -d pi -c 'ALTER FUNCTION pi_stream_ingest(jsonb) OWNER TO "sieyes"'
+
+      # telegraf telemetry ingestion schema (idempotent); the role is
+      # cluster-wide so it is provisioned from the postgres database
+      ${psql} -d postgres -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '${telegrafCredentials.telegrafUser}') THEN CREATE ROLE ${telegrafCredentials.telegrafUser}; END IF; END \$\$;"
+      ${psql} -d postgres -c "ALTER ROLE ${telegrafCredentials.telegrafUser} WITH LOGIN PASSWORD '${telegrafCredentials.telegrafPassword}'"
+      ${psql} -d ${telegrafCredentials.telegrafDatabase} -c "ALTER DATABASE \"${telegrafCredentials.telegrafDatabase}\" OWNER TO \"sieyes\""
+      ${psql} -d ${telegrafCredentials.telegrafDatabase} -f ${telegrafSchema}
     '';
   };
+
+  # the agent hosts need to reach the postgresql port over the LAN
+  networking.firewall.allowedTCPPorts = [ 5432 ];
 }

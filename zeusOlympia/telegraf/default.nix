@@ -1,0 +1,2 @@
+{ localLib, ... }:
+localLib.mkDirectoryImporterModule ./.

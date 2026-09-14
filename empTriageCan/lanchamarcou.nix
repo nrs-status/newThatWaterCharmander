@@ -14,6 +14,7 @@ inputsForModulesExceptPkgs:
     "./lanchamarcou"
     "./bootIntrospection"
     "./avahi.nix"
+    "./telegraf"
     "./impermanence"
   ];
 }
