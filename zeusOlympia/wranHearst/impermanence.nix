@@ -7,16 +7,10 @@
         "daguerreBrick"
         "smithShirtCube"
         "kierLeapMount"
+        ".local/share/zoxide"
+        ".local/share/atuin"
       ];
       files = [
-        ".local/share/zoxide/db.zo"
-        
-        {
-          file = ".local/share/atuin/history.db";
-          parentDirectory = {
-            user = "sieyes";
-          };
-        }
       ];
     };
   };
