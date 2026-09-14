@@ -10,6 +10,7 @@ inputsForModulesExceptPkgs:
     "./virtualization.nix"
     "./nixpkgs.nix"
     "./vm.nix"
+    "./keyRemappings.nix"
     "./augtibcalcla"
     "./bootIntrospection"
 
