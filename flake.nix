@@ -7,6 +7,7 @@
     impermanenceFlake.url = "github:nix-community/impermanence";
     peachRampSkateboard.url = "github:nrs-status/newPeachRampSkateboard";
     frontArmToPlane.url = "github:nrs-status/newFrontArmToPlane";
+    colmenaFlake.url = "github:zhaofengli/colmena";
   };
 
   outputs =
@@ -22,10 +23,9 @@
         hmFlake = inputs.hmFlake;
         hmMockVersion = "26.11"; # used to mock hm in order to construct the waybar and sway configs
         nixosSystemFn = inputs.nixpkgs.lib.nixosSystem;
+        makeColmenaHiveFn = inputs.colmenaFlake.colmena.lib.makeHive;
       };
-    in
-    {
-      nixosConfigurations = localLib.mkNixOS {
+      systemArgs = {
         modulesPath = ./zeusOlympia;
         nixosSystemArgsPath = ./empTriageCan;
         inputsForModulesExceptPkgs = {
@@ -37,5 +37,13 @@
           impermanenceFlake = inputs.impermanenceFlake;
         };
       };
+    in
+    {
+      nixosConfigurations = localLib.mkNixOS systemArgs;
+      colmenaHive = localLib.mkColmenaHive (
+        pkgsLib.recursiveUpdate systemArgs {
+          colmenaArgOverrideFn = arg: builtins.removeAttrs arg [ "wranHearst" ];
+        }
+      );
     };
 }
