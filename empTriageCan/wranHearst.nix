@@ -23,6 +23,7 @@ inputsForModulesExceptPkgs:
     "./vaultWarden"
     "./impermanence"
     "./avahi.nix"
+    "./bootIntrospection"
   ];
 }
 
