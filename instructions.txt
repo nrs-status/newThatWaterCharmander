@@ -1,0 +1,11 @@
+
+You are on a NixOS system. If you need tools, write a flake.nix file and run a shell from it.
+
+add a module in this repository, in a directory at path ./zeusOlympia/harmonia, that provides a harmonia service.
+Extend the configuration of the host `wranHearst` in this repository so that it imports the harmonia module and provides the linux 6.18 Binary used by the `vm` scripts in the `frontArmToPlane` input
+
+test that it works, Make sure that the hosts `lanchamarcou` and `augtibcalcla` have access to it In order to build the `headless` shell from the `frontArmToPlane` input,
+
+Once you are done: 
+- Create a file called SUMMARY.md containing a step-by-step summary of all steps you have undertaken.
+- As the last thing you do, send a `notify-send` notification containing an extremely short description of your task, notifying the user that you've completed your task. The message must include the `git` branch you are located in.

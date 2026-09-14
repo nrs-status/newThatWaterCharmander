@@ -19,6 +19,7 @@ inputsForModulesExceptPkgs:
     "./postgresql"
     "./forgejo"
     "./garage"
+    "./harmonia"
     "./impermanence"
     "./avahi.nix"
   ];
