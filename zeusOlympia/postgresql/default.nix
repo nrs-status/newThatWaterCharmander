@@ -5,6 +5,12 @@ let
   telegrafCredentials = import ./telegraf-credentials.nix;
   telegrafSchema =
     pkgs.writeText "telegraf-schema.sql" (builtins.readFile ./telegraf-schema.sql);
+  # credentials + schema for the arunman run-tracking stream (see the
+  # arunman SPEC.md in the frontArmToPlane flake): the tool records every pi
+  # microvm run in the `run' table of the `arunman' database
+  arunmanCredentials = import ./arunman-credentials.nix;
+  arunmanSchema =
+    pkgs.writeText "arunman-schema.sql" (builtins.readFile ./arunman-schema.sql);
   docSchema = pkgs.writeText "doc-schema.sql" (builtins.readFile ./doc-schema.sql);
   # schema + ingest function for the JSON-lines span stream produced by
   # pi-json-span-processor (see newFrontArmToPlane/pi-json-span-processor/SPEC.md)
@@ -26,12 +32,17 @@ in
       host  ${telegrafCredentials.telegrafDatabase} ${telegrafCredentials.telegrafUser} 172.16.0.0/12   scram-sha-256
       host  ${telegrafCredentials.telegrafDatabase} ${telegrafCredentials.telegrafUser} 192.168.0.0/16  scram-sha-256
       host  ${telegrafCredentials.telegrafDatabase} ${telegrafCredentials.telegrafUser} ::1/128         scram-sha-256
+      host  ${arunmanCredentials.arunmanDatabase} ${arunmanCredentials.arunmanUser} 10.0.0.0/8       scram-sha-256
+      host  ${arunmanCredentials.arunmanDatabase} ${arunmanCredentials.arunmanUser} 172.16.0.0/12   scram-sha-256
+      host  ${arunmanCredentials.arunmanDatabase} ${arunmanCredentials.arunmanUser} 192.168.0.0/16  scram-sha-256
+      host  ${arunmanCredentials.arunmanDatabase} ${arunmanCredentials.arunmanUser} ::1/128         scram-sha-256
     '';
 
     ensureDatabases = [
       "doc"
       "pi"
       telegrafCredentials.telegrafDatabase
+      arunmanCredentials.arunmanDatabase
     ];
 
     ensureUsers = [
@@ -75,6 +86,24 @@ in
       ${psql} -d postgres -c "ALTER ROLE ${telegrafCredentials.telegrafUser} WITH LOGIN PASSWORD '${telegrafCredentials.telegrafPassword}'"
       ${psql} -d ${telegrafCredentials.telegrafDatabase} -c "ALTER DATABASE \"${telegrafCredentials.telegrafDatabase}\" OWNER TO \"sieyes\""
       ${psql} -d ${telegrafCredentials.telegrafDatabase} -f ${telegrafSchema}
+
+      # arunman run-tracking ingestion schema (idempotent); the role is
+      # cluster-wide so it is provisioned from the postgres database
+      ${psql} -d postgres -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '${arunmanCredentials.arunmanUser}') THEN CREATE ROLE ${arunmanCredentials.arunmanUser}; END IF; END \$\$;"
+      ${psql} -d postgres -c "ALTER ROLE ${arunmanCredentials.arunmanUser} WITH LOGIN PASSWORD '${arunmanCredentials.arunmanPassword}'"
+      ${psql} -d ${arunmanCredentials.arunmanDatabase} -c "ALTER DATABASE \"${arunmanCredentials.arunmanDatabase}\" OWNER TO \"sieyes\""
+      ${psql} -d ${arunmanCredentials.arunmanDatabase} -f ${arunmanSchema}
+      ${psql} -d ${arunmanCredentials.arunmanDatabase} -c 'ALTER TABLE run OWNER TO "sieyes"'
+      ${psql} -d ${arunmanCredentials.arunmanDatabase} -c "GRANT CONNECT ON DATABASE \"${arunmanCredentials.arunmanDatabase}\" TO ${arunmanCredentials.arunmanUser}"
+      # the role only ingests run entries: DML on the `run' table (INSERT on
+      # the serial id needs USAGE on its sequence), no DDL. CREATE on the
+      # public schema is still required because arunman always runs
+      # `CREATE TABLE IF NOT EXISTS run ...' on connect (no-op here, but
+      # postgres >= 15 checks the schema privilege before the existence
+      # notice), so the role must not be denied it.
+      ${psql} -d ${arunmanCredentials.arunmanDatabase} -c "GRANT USAGE, CREATE ON SCHEMA public TO ${arunmanCredentials.arunmanUser}"
+      ${psql} -d ${arunmanCredentials.arunmanDatabase} -c "GRANT SELECT, INSERT, UPDATE, DELETE ON run TO ${arunmanCredentials.arunmanUser}"
+      ${psql} -d ${arunmanCredentials.arunmanDatabase} -c "GRANT USAGE, SELECT ON SEQUENCE run_id_seq TO ${arunmanCredentials.arunmanUser}"
     '';
   };
 
