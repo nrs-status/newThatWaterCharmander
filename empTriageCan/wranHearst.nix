@@ -9,7 +9,7 @@ inputsForModulesExceptPkgs:
     "./globalPackages.nix"
     "./keyRemappings.nix"
     "./nix.nix"
-    "./security.nix"
+    "./security"
     "./sway"
     "./virtualization.nix"
     "./sieyes.nix"
@@ -25,6 +25,7 @@ inputsForModulesExceptPkgs:
     "./impermanence"
     "./avahi.nix"
     "./bootIntrospection"
+    "./openssh.nix"
   ];
 }
 

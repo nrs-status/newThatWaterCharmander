@@ -24,21 +24,6 @@ pkgsLib.mkMerge [
       ];
     };
 
-    #cache shell
-    #secrets management; requires that the host enable to sops module
-    sops = {
-      secrets = {
-        "keys/openrouter" = {
-          owner = "sieyes";
-          mode = "0400";
-        };
-        "keys/git/github/nrs-status" = {
-          owner = "sieyes";
-          mode = "0400";
-        };
-      };
-
-    };
 
   }
 ]

@@ -6,7 +6,7 @@ inputsForModulesExceptPkgs:
     "./global.nix"
     "./globalPackages.nix"
     "./nix.nix"
-    "./security.nix"
+    "./security"
     "./virtualization.nix"
     "./nixpkgs.nix"
     "./vm.nix"
@@ -16,5 +16,6 @@ inputsForModulesExceptPkgs:
     "./avahi.nix"
     "./telegraf"
     "./impermanence"
+    "./openssh.nix"
   ];
 }

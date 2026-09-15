@@ -10,7 +10,9 @@
       "/var/lib/nixos"
       "/etc/NetworkManager/system-connections" # NetworkManager user-created connection profiles live here
     ];
-    files = [ "/etc/machine-id" ];
+    files = [
+      "/etc/machine-id"
+    ];
   };
   fileSystems."/persist".neededForBoot = true;
 
