@@ -21,6 +21,7 @@ inputsForModulesExceptPkgs:
     "./garage"
     "./harmonia"
     "./vaultWarden"
+    "./openBao"
     "./impermanence"
     "./avahi.nix"
     "./bootIntrospection"
