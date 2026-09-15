@@ -115,6 +115,7 @@ in
   # (systemd creates /var/lib/garage as a symlink at service start); bind
   # mounting the public path instead would break the StateDirectory setup
   environment.persistence."/persist".directories = [
+    { directory = "/var/lib/private"; mode = "0700"; }
     { directory = "/var/lib/private/garage"; mode = "0700"; }
   ];
 
