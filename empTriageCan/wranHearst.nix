@@ -14,6 +14,7 @@ inputsForModulesExceptPkgs:
     "./virtualization.nix"
     "./sieyes.nix"
     "./wranHearst"
+    "./kubernetes"
     "./nixpkgs.nix"
     "./vm.nix"
     "./postgresql"

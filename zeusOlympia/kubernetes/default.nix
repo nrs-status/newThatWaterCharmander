@@ -1,0 +1,105 @@
+# Kubernetes cluster configuration, built on k3s.
+#
+# The cluster consists of:
+#   - `wranHearst`: control host (k3s server, bootstraps the cluster)
+#   - `lanchamarcou` and `augtibcalcla`: worker hosts (k3s agents)
+#
+# Every host includes this module and sets `kubernetes.role` accordingly
+# (see the kubernetes.nix file in each host directory).
+{ config, lib, ... }:
+let
+  cfg = config.kubernetes;
+in
+{
+  options.kubernetes = {
+    role = lib.mkOption {
+      type = lib.types.enum [
+        "control"
+        "worker"
+      ];
+      description = ''
+        Role of this node in the cluster: `control` runs the k3s server (and
+        initializes the cluster), `worker` runs a k3s agent that registers with
+        the control host.
+      '';
+    };
+
+    serverAddr = lib.mkOption {
+      type = lib.types.str;
+      default = "https://wranHearst:6443";
+      description = "Address of the control host's k3s API server, used by workers to join the cluster.";
+    };
+
+    serverName = lib.mkOption {
+      type = lib.types.str;
+      default = "wranHearst";
+      description = ''
+        DNS name of the control host. It is added to the API server's TLS SANs
+        (plain and `.local`, for mDNS) so that workers can connect by name.
+      '';
+    };
+
+    clusterToken = lib.mkOption {
+      type = lib.types.str;
+      default = "wranHearst::k3s-cluster-token::replace-with-sops-managed-secret";
+      description = ''
+        Shared cluster token. WARNING: this placeholder ends up world-readable
+        in the nix store; override it (e.g. with a sops-nix managed
+        `tokenFile`) for real deployments.
+      '';
+    };
+
+    nodeIP = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "IP address k3s advertises for this node; detected automatically when null.";
+    };
+
+    extraFlags = lib.mkOption {
+      type = with lib.types; listOf str;
+      default = [ ];
+      description = "Extra flags passed to the k3s command on this node.";
+    };
+  };
+
+  config = {
+    services.k3s = {
+      enable = true;
+      role = if cfg.role == "control" then "server" else "agent";
+      # the control host bootstraps the cluster; workers just join it
+      clusterInit = cfg.role == "control";
+      serverAddr = lib.mkIf (cfg.role == "worker") cfg.serverAddr;
+      token = cfg.clusterToken;
+      nodeIP = lib.mkIf (cfg.nodeIP != null) cfg.nodeIP;
+      extraFlags =
+        cfg.extraFlags
+        ++ lib.optionals (cfg.role == "control") [
+          "--tls-san ${cfg.serverName}"
+          "--tls-san ${cfg.serverName}.local" # mDNS name, published by avahi
+        ];
+    };
+
+    # Keeps the k3s cluster state across reboots.
+    environment.persistence."/persist".directories = [
+      "/var/lib/rancher"
+      "/var/lib/kubelet"
+      "/etc/rancher"
+    ];
+
+    # provides `k3s kubectl` for cluster administration
+    environment.systemPackages = [ config.services.k3s.package ];
+
+    # cluster communication:
+    # 6443: k8s API server, 10250: kubelet, 2379/2380: embedded etcd (for
+    # future HA control hosts), 8472/udp: flannel VXLAN overlay network
+    networking.firewall.allowedTCPPorts = [
+      6443
+      10250
+    ]
+    ++ lib.optionals (cfg.role == "control") [
+      2379
+      2380
+    ];
+    networking.firewall.allowedUDPPorts = [ 8472 ];
+  };
+}
