@@ -145,7 +145,7 @@ in
   };
 
   systemd.services.kierLeapMountSecretsFile = {
-    description = "touch /persist's secrets.yaml if it does not exist yet";
+    description = "create a sops-encrypted dummy secrets.yaml under /persist if it does not exist yet";
     #must run before impermanence's persist unit for secrets.yaml, which runs
     #before local-fs.target, so this unit has to drop its default
     #dependencies as well to avoid an ordering cycle (see hostSSHToAge)
@@ -154,6 +154,10 @@ in
       "local-fs.target"
       secretsPersistUnit
     ];
+    #sops encryption needs the creation rules in ${persistDir}/.sops.yaml,
+    #which kierLeapMountSopsConfig writes (transitively after hostSSHToAge,
+    #which provides the host age key)
+    after = [ "kierLeapMountSopsConfig.service" ];
     unitConfig.DefaultDependencies = false;
     serviceConfig = {
       Type = "oneshot";
@@ -161,7 +165,13 @@ in
       ExecStart = pkgs.writeShellScript "kierLeapMountSecretsFile" ''
         mkdir -p ${persistDir}
         if [ ! -e ${persistDir}/secrets.yaml ]; then
-          touch ${persistDir}/secrets.yaml
+          cat > ${persistDir}/secrets.yaml <<EOF
+        dummy: changeme
+        EOF
+          #encrypt in place with the host-specific creation rules (see
+          #kierLeapMountSopsConfig); only the public age key is needed here
+          ${pkgs.sops}/bin/sops --config ${persistDir}/.sops.yaml \
+            -e -i ${persistDir}/secrets.yaml
         fi
       '';
     };
