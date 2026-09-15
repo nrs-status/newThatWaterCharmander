@@ -93,6 +93,12 @@ in
 
   networking.firewall.allowedTCPPorts = [ forgejoPort ];
 
+  # wranHearst runs impermanence (root is wiped on reboot), so forgejo's state
+  # (repositories, database, LFS objects, user-passwords) must be persisted
+  # explicitly; declared here, inside the service module (same pattern as
+  # ../garage, ../openBao, ../vaultWarden, ../kubernetes)
+  environment.persistence."/persist".directories = [ cfg.stateDir ];
+
   # advertise the forgejo web UI over mDNS so it is discoverable on the
   # LAN as wranHearst.local (publishing itself is configured in ../avahi.nix)
   services.avahi.extraServiceFiles.forgejo = ''

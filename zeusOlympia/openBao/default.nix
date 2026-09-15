@@ -34,8 +34,14 @@ in
     };
   };
 
-  # the openbao state (raft storage, keys) must be persisted explicitly
-  environment.persistence."/persist".directories = [ "/var/lib/openbao" ];
+  # the openbao state (raft storage, keys) must be persisted explicitly. the
+  # upstream module uses DynamicUser=true, so the real state directory is
+  # /var/lib/private/openbao (systemd creates /var/lib/openbao as a symlink
+  # at service start); bind mounting the public path instead would break the
+  # StateDirectory setup
+  environment.persistence."/persist".directories = [
+    "/var/lib/private/openbao"
+  ];
 
   networking.firewall = {
     allowedTCPPorts = [

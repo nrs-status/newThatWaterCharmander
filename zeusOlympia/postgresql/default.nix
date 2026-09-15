@@ -107,6 +107,15 @@ in
     '';
   };
 
+  # wranHearst runs impermanence (root is wiped on reboot), so the postgresql
+  # data directory must be persisted explicitly; declared here, inside the
+  # service module (same pattern as ../garage, ../openBao, ../vaultWarden,
+  # ../kubernetes). the parent directory is persisted (not just
+  # services.postgresql.dataDir) so the cluster survives PG major upgrades
+  environment.persistence."/persist".directories = [
+    "/var/lib/postgresql"
+  ];
+
   # the agent hosts need to reach the postgresql port over the LAN
   networking.firewall.allowedTCPPorts = [ 5432 ];
 
