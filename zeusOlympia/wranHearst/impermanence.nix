@@ -1,6 +1,9 @@
 {
 
   environment.persistence."/persist" = {
+    files = [
+      "/etc/ssh/ssh_host_ed25519_key"
+    ];
     users.sieyes = {
       directories = [
         "baghdadPlane"
@@ -13,7 +16,6 @@
         ".local/share/atuin"
       ];
       files = [
-        "/etc/ssh/ssh_host_ed25519_key"
       ];
     };
   };
