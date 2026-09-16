@@ -14,8 +14,16 @@
         "https://cache.iog.io" # binary cache for haskell.nix
         "https://nix-community.cachix.org"
         "https://colmena.cachix.org"
-        "http://wranHearst.local:5000" #my cache
-
+        #my cache (harmonia on wranHearst, see ./harmonia)
+        #
+        # NOTE: this must stay a name resolvable via unicast DNS (the LAN
+        # router serves `wranHearst.home` from its DHCP leases and tracks
+        # address changes), NOT the mDNS name `wranHearst.local`. Nix
+        # hardcodes `__nss_configure_lookup("hosts", "files dns")`
+        # (preloadNSS() in src/libstore/globals.cc) so sandboxed builds never
+        # touch nscd/nsncd, which means nix cannot resolve mDNS-only `.local`
+        # names and would silently skip this substituter on every build.
+        "http://wranHearst.home:5000"
       ];
       trusted-public-keys = [
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=" # nix-community

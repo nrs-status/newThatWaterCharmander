@@ -1,8 +1,14 @@
 # harmonia binary cache server: serves the local /nix/store over HTTP so
 # the other hosts of this repo (augtibcalcla, lanchamarcou) can use
-# wranHearst as a substituter, e.g. to fetch the linux 6.18 kernel binary
-# used by the `vm` scripts of the frontArmToPlane input (see
-# ../wranHearst/linuxKernel.nix) without building it themselves.
+# wranHearst as a substituter (http://wranHearst.home:5000, see ../nix.nix)
+# without building everything themselves.
+#
+# NOTE on naming: the cache is advertised over mDNS below so it is
+# discoverable on the LAN as wranHearst.local (publishing itself is
+# configured in ../avahi.nix), but the SUBSTITUTER URL must use the
+# router-DNS name `wranHearst.home` instead: nix restricts hostname
+# resolution to `files dns` (no nscd, no mDNS) to keep sandboxed builds
+# hermetic, so it cannot resolve .local names.
 # This module is only imported by the wranHearst host (see ../../empTriageCan).
 {
   pkgs,
@@ -11,7 +17,9 @@
 }:
 {
   services.harmonia = {
-    enable = true;
+    # NOTE: must be `cache.enable` (not the deprecated flat `enable`), otherwise
+    # every evaluation of this host emits a renamed-option warning
+    cache.enable = true;
     package = pkgs.harmonia;
 
     # key generated with `nix-store --generate-binary-cache-key wranHearst-cache
