@@ -93,6 +93,25 @@ in
 
   networking.firewall.allowedTCPPorts = [ forgejoPort ];
 
+  # expose the forgejo CLI outside the systemd unit. the service locates its
+  # config only through the unit's own environment (FORGEJO_WORK_DIR /
+  # FORGEJO_CUSTOM, set by the nixpkgs module), which `sudo -u forgejo`
+  # strips: without them forgejo resolves its work path to the caller's cwd,
+  # finds no app.ini, and "forgejo admin user list" dies with
+  # "Unable to load config file for a installed Forgejo instance". this
+  # wrapper supplies the same environment and the real config path, so
+  #   sudo -u forgejo forgejo admin user list
+  # works from any shell. it must still run as the forgejo user (the state
+  # dir and custom/conf are 0750 root:forgejo), exactly like the service.
+  # the service itself is unaffected: the unit ExecStart/ExecStartPre point
+  # straight at the unwrapped store-path binary.
+  environment.systemPackages = lib.singleton (pkgs.writeShellScriptBin "forgejo" ''
+    exec env \
+      FORGEJO_WORK_DIR=${cfg.stateDir} \
+      FORGEJO_CUSTOM=${cfg.customDir} \
+      ${lib.getExe cfg.package} --config ${cfg.customDir}/conf/app.ini "$@"
+  '');
+
   # wranHearst runs impermanence (root is wiped on reboot), so forgejo's state
   # (repositories, database, LFS objects, user-passwords) must be persisted
   # explicitly; declared here, inside the service module (same pattern as
