@@ -20,11 +20,15 @@
         owner = "root";
         mode = "0600";
         sopsFile = "/etc/kierLeapMount/secrets.yaml";
+        #make the agent (see ./sshAgent.nix) reload the keys from memory
+        #if sops re-renders them (e.g. on a key rotation at nixos-rebuild)
+        restartUnits = [ "sopsSSHAgent.service" ];
       };
       "ssh/sieyes-to-plat2548" = {
         owner = "root";
         mode = "0600";
         sopsFile = "/etc/kierLeapMount/secrets.yaml";
+        restartUnits = [ "sopsSSHAgent.service" ];
       };
     };
 
