@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   ...
 }:
@@ -19,10 +20,51 @@ in
       ROCKET_ADDRESS = "0.0.0.0"; # reachable from the LAN
       ROCKET_PORT = vaultwardenPort;
 
-      # the admin panel is disabled by default (ADMIN_TOKEN unset), which is
-      # the safe choice for a LAN-exposed instance
-      SIGNUPS_ALLOWED = false; # signups are managed manually by the admin
+      # signups are managed manually by the admin; the admin panel is enabled
+      # by the ADMIN_TOKEN secret provided through the sops-rendered
+      # environment file (see below)
+      SIGNUPS_ALLOWED = false;
     };
+
+    # the admin token (ADMIN_TOKEN) is managed with sops-nix (see the sops
+    # declaration below) and rendered into an environment file; it must never
+    # be put in `config`, which the upstream module renders into a
+    # world-readable store path (config.env). the upstream module sources
+    # this file via its EnvironmentFile, so the admin panel is enabled
+    # without any further configuration.
+    environmentFile = config.sops.templates."vaultwarden-env".path;
+  };
+
+  # vaultwarden secrets, decrypted from the host's sops file (same pattern as
+  # ../garage). the following keys must exist in /etc/kierLeapMount/secrets.yaml
+  # as a nested yaml mapping (the file is added imperatively; it is not part of
+  # the repo; sops-nix splits secret names on "/" into nested keys):
+  #   vaultwarden:
+  #     admin-token:  any random token (an argon2 PHC string is also accepted),
+  #                   e.g. `head -c 32 /dev/urandom | base64`
+  # the secret is rendered into a single environment file because the
+  # vaultwarden upstream module takes exactly one environmentFile. sops-nix
+  # restarts vaultwarden whenever the secret is re-rendered (e.g. on a
+  # rotation at nixos-rebuild)
+  sops.secrets."vaultwarden/admin-token" = {
+    sopsFile = "/etc/kierLeapMount/secrets.yaml";
+    mode = "0400";
+    restartUnits = [ "vaultwarden.service" ];
+  };
+  sops.templates."vaultwarden-env" = {
+    mode = "0400";
+    restartUnits = [ "vaultwarden.service" ];
+    content = ''
+      ADMIN_TOKEN=${config.sops.placeholder."vaultwarden/admin-token"}
+    '';
+  };
+
+  systemd.services.vaultwarden = {
+    # sops-nix decrypts the secrets at boot: on wranHearst that happens in the
+    # sops-install-secrets.service unit (useSystemdActivation is set in
+    # ../security); on hosts where sops-nix runs as a plain activation script
+    # the unit does not exist and this ordering is a harmless no-op
+    after = [ "sops-install-secrets.service" ];
   };
 
   # the vaultwarden state must be persisted explicitly

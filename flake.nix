@@ -51,6 +51,16 @@
         sopsFlake = inputs.sopsFlake;
         impermanenceFlake = inputs.impermanenceFlake;
       };
+
+      # vm test for the vaultwarden module (see ./kaounSlidesTotem/vaultwarden-test),
+      # which reads its secrets from sops-nix; run with
+      #   nix build .#checks.x86_64-linux.vaultwarden-vm-test
+      checks.x86_64-linux.vaultwarden-vm-test = import ./kaounSlidesTotem/vaultwarden-test {
+        inherit pkgsLib;
+        nixpkgsFlake = inputs.nixpkgs;
+        sopsFlake = inputs.sopsFlake;
+        impermanenceFlake = inputs.impermanenceFlake;
+      };
       colmenaHive = localLib.mkColmenaHive (
         pkgsLib.recursiveUpdate systemArgs {
           colmenaArgOverrideFn = arg: builtins.removeAttrs arg [ "wranHearst" ];
