@@ -58,6 +58,15 @@ in
         # self-enrolled local node below uses the loopback URL directly.
         server_url = cfg.serverUrl;
 
+        # the server's Noise (control protocol) private key and the embedded
+        # DERP server's private key are secrets: they are provisioned with
+        # sops-nix from /etc/kierLeapMount/secrets.yaml instead of being
+        # generated (and persisted) by headscale itself (see the sops
+        # declarations below). generating them on the operator side makes the
+        # server identity reproducible and keeps all private material in the
+        # sops file.
+        noise.private_key_path = config.sops.secrets."headscale/noise-private-key".path;
+
         dns = {
           magic_dns = true;
           base_domain = cfg.baseDomain;
@@ -86,10 +95,47 @@ in
             region_code = "wran";
             region_name = "wranHearst embedded DERP";
             stun_listen_addr = "0.0.0.0:3478";
+            # sops-provisioned (see the declarations below); headscale refuses
+            # to start the embedded DERP server without a private key
+            private_key_path = config.sops.secrets."headscale/derp-private-key".path;
           };
         };
       };
     };
+
+    # the headscale server identity is managed with sops-nix (same pattern as
+    # ../garage and ../vaultWarden). the following keys must exist in
+    # /etc/kierLeapMount/secrets.yaml as a nested yaml mapping (the file is
+    # added imperatively; it is not part of the repo; sops-nix splits secret
+    # names on "/" into nested keys):
+    #   headscale:
+    #     noise-private-key:  the Noise control-protocol private key, in
+    #                         headscale's `privkey:<64 hex>` format, e.g. the
+    #                         output of `headscale generate private-key`
+    #     derp-private-key:   the embedded DERP server private key, same
+    #                         format (a second, different
+    #                         `headscale generate private-key`)
+    # headscale runs as the unprivileged `headscale` user, so the secrets are
+    # owned by that user; sops-nix restarts headscale whenever either key is
+    # re-rendered (e.g. on a rotation at nixos-rebuild)
+    sops.secrets."headscale/noise-private-key" = {
+      sopsFile = "/etc/kierLeapMount/secrets.yaml";
+      owner = config.services.headscale.user;
+      mode = "0400";
+      restartUnits = [ "headscale.service" ];
+    };
+    sops.secrets."headscale/derp-private-key" = {
+      sopsFile = "/etc/kierLeapMount/secrets.yaml";
+      owner = config.services.headscale.user;
+      mode = "0400";
+      restartUnits = [ "headscale.service" ];
+    };
+
+    # sops-nix decrypts the secrets at boot: on wranHearst that happens in the
+    # sops-install-secrets.service unit (useSystemdActivation is set in
+    # ../security); on hosts where sops-nix runs as a plain activation script
+    # the unit does not exist and this ordering is a harmless no-op
+    systemd.services.headscale.after = [ "sops-install-secrets.service" ];
 
     # the control plane must be reachable from the LAN (enrollment, ongoing
     # control traffic of the enrolled nodes) and the embedded DERP server
@@ -98,9 +144,11 @@ in
     networking.firewall.allowedUDPPorts = [ 3478 ];
 
     # wranHearst runs impermanence (root is wiped on reboot), so the headscale
-    # state (sqlite db, noise/derp keys) must be persisted explicitly;
-    # declared here, inside the service module (same pattern as ../garage,
-    # ../openBao, ../vaultWarden, ../kubernetes)
+    # state (sqlite db and the reusable preauth key registered in it) must be
+    # persisted explicitly; the noise/derp private keys are no longer kept
+    # here (they come from sops-nix, see above). declared here, inside the
+    # service module (same pattern as ../garage, ../openBao, ../vaultWarden,
+    # ../kubernetes)
     environment.persistence."/persist".directories = [
       "/var/lib/headscale"
       "/var/lib/tailscale"
@@ -118,7 +166,21 @@ in
     # remote hosts: it is created for the tailnet user, refreshed daily
     # (expiration is 48h, so a valid key always exists) and written to
     # /var/lib/headscale/preauth-key; the operator copies it into
-    # ${cfg.authKeyFile} on the client hosts (see ./client.nix)
+    # ${cfg.authKeyFile} on the client hosts (see ./client.nix).
+    #
+    # NOTE: unlike the server's Noise/DERP private keys above, this key is
+    # deliberately NOT provisioned through sops-nix and is kept refreshed
+    # here. headscale only accepts preauth keys that are registered in its
+    # database, so a key cannot be generated externally and imported; it has
+    # to be created by this server. Rotating it (daily, with a 48h expiry)
+    # bounds the lifetime of the credential. A preauth key is a bearer token:
+    # anyone who can read it (e.g. from a leaked copy on a client, a backup,
+    # or this file) can enroll arbitrary nodes into the tailnet. A key that
+    # were created once and never refreshed (in particular a non-expiring one)
+    # would therefore grant an attacker permanent, unrevocable access to
+    # enroll machines into the tailnet long after the leak; the daily
+    # rotation invalidates any leaked copy within at most 48 hours and forces
+    # the operator to re-copy the current key.
     systemd.services.headscale-preauth-key = {
       description = "maintain a reusable headscale enrollment (preauth) key";
       wantedBy = [ "multi-user.target" ];
