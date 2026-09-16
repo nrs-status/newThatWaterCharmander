@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   ...
 }:
@@ -32,42 +33,53 @@ in
       };
     };
 
-    # secrets (GARAGE_RPC_SECRET / GARAGE_ADMIN_TOKEN) are provisioned at
-    # first boot by garage-rpc-secret.service below; garage refuses to start
-    # without an rpc secret and garage 1.x disables the admin API unless an
-    # admin token is configured. the `garage` admin wrapper installed by the
-    # upstream nixos module sources this file too, so CLI administration
-    # works out of the box.
-    # NB: the garage unit uses DynamicUser=true (see the upstream module), so
-    # its StateDirectory is managed under /var/lib/private/garage (with
-    # /var/lib/garage as a symlink created by systemd at start); the secret
-    # file must live in the private state directory, otherwise provisioning a
-    # public /var/lib/garage makes systemd's StateDirectory migration fail
-    # with EBUSY when the directory is an impermanence bind mount
-    environmentFile = "/var/lib/private/garage/rpc-secret.env";
+    # secrets (GARAGE_RPC_SECRET / GARAGE_ADMIN_TOKEN) are managed with
+    # sops-nix (see the sops declarations below) and rendered into an
+    # environment file; garage refuses to start without an rpc secret and
+    # garage 1.x disables the admin API unless an admin token is configured.
+    # the `garage` admin wrapper installed by the upstream nixos module
+    # sources this file too, so CLI administration works out of the box.
+    environmentFile = config.sops.templates."garage-env".path;
   };
 
-  # provision secrets once; skipped on subsequent boots (ConditionPathExists)
-  systemd.services.garage-rpc-secret = {
-    description = "provision garage rpc secret and admin token";
-    unitConfig.ConditionPathExists = "!/var/lib/private/garage/rpc-secret.env";
-    serviceConfig = {
-      Type = "oneshot";
-      UMask = "0077";
-    };
-    script = ''
-      mkdir -p /var/lib/private/garage
-      # garage 1.x expects the rpc secret as 32 random bytes in hex
-      rpcSecret=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d " \n")
-      adminToken=$(head -c 32 /dev/urandom | base64 | tr -d "\n")
-      printf "GARAGE_RPC_SECRET=%s\nGARAGE_ADMIN_TOKEN=%s\n" "$rpcSecret" "$adminToken" \
-        > /var/lib/private/garage/rpc-secret.env
+  # garage secrets, decrypted from the host's sops file (same pattern as
+  # ../wranHearst/sops.nix). the following keys must exist in
+  # /etc/kierLeapMount/secrets.yaml as a nested yaml mapping (the file is
+  # added imperatively; it is not part of the repo; sops-nix splits secret
+  # names on "/" into nested keys):
+  #   garage:
+  #     rpc-secret:   32 random bytes in hex (garage 1.x requirement),
+  #                   e.g. `head -c 32 /dev/urandom | od -An -tx1 | tr -d " \n"`
+  #     admin-token:  any random token, e.g. `head -c 32 /dev/urandom | base64`
+  # the secrets are rendered into a single environment file because garage's
+  # upstream module takes exactly one environmentFile (and the CLI wrapper
+  # sources that same file). sops-nix restarts garage (and its dependents)
+  # whenever the secrets are re-rendered (e.g. on a rotation at nixos-rebuild)
+  sops.secrets."garage/rpc-secret" = {
+    sopsFile = "/etc/kierLeapMount/secrets.yaml";
+    mode = "0400";
+    restartUnits = [ "garage.service" "garage-layout.service" ];
+  };
+  sops.secrets."garage/admin-token" = {
+    sopsFile = "/etc/kierLeapMount/secrets.yaml";
+    mode = "0400";
+    restartUnits = [ "garage.service" "garage-layout.service" ];
+  };
+  sops.templates."garage-env" = {
+    mode = "0400";
+    restartUnits = [ "garage.service" ];
+    content = ''
+      GARAGE_RPC_SECRET=${config.sops.placeholder."garage/rpc-secret"}
+      GARAGE_ADMIN_TOKEN=${config.sops.placeholder."garage/admin-token"}
     '';
   };
 
   systemd.services.garage = {
-    after = [ "garage-rpc-secret.service" ];
-    wants = [ "garage-rpc-secret.service" ];
+    # sops-nix decrypts the secrets at boot: on wranHearst that happens in the
+    # sops-install-secrets.service unit (useSystemdActivation is set in
+    # ../security); on hosts where sops-nix runs as a plain activation script
+    # the unit does not exist and this ordering is a harmless no-op
+    after = [ "sops-install-secrets.service" ];
   };
 
   # a garage node without a layout role cannot serve requests; assign this
@@ -89,10 +101,11 @@ in
     script = ''
       # the raw garage binary is used here (not the `garage` wrapper from
       # environment.systemPackages), so the rpc secret has to be sourced
-      # explicitly (with set -a so the variables are exported to the garage
-      # child process), otherwise the CLI fails with "No RPC secret provided"
+      # explicitly from the sops-rendered environment file (with set -a so
+      # the variables are exported to the garage child process), otherwise
+      # the CLI fails with "No RPC secret provided"
       set -a
-      . /var/lib/private/garage/rpc-secret.env
+      . ${config.sops.templates."garage-env".path}
       set +a
       # wait for the (public) garage health endpoint to come up
       for _ in $(seq 1 30); do

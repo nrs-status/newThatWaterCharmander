@@ -41,6 +41,16 @@
     in
     {
       nixosConfigurations = localLib.mkNixOS systemArgs;
+
+      # vm test for the garage module (see ./kaounSlidesTotem/garage-test),
+      # which reads its secrets from sops-nix; run with
+      #   nix build .#checks.x86_64-linux.garage-vm-test
+      checks.x86_64-linux.garage-vm-test = import ./kaounSlidesTotem/garage-test {
+        inherit pkgsLib;
+        nixpkgsFlake = inputs.nixpkgs;
+        sopsFlake = inputs.sopsFlake;
+        impermanenceFlake = inputs.impermanenceFlake;
+      };
       colmenaHive = localLib.mkColmenaHive (
         pkgsLib.recursiveUpdate systemArgs {
           colmenaArgOverrideFn = arg: builtins.removeAttrs arg [ "wranHearst" ];
