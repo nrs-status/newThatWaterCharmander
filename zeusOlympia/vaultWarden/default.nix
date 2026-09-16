@@ -20,6 +20,14 @@ in
       ROCKET_ADDRESS = "0.0.0.0"; # reachable from the LAN
       ROCKET_PORT = vaultwardenPort;
 
+      # dbBackend = "postgresql" only builds the binary with the postgres
+      # feature (no sqlite fallback); without DATABASE_URL vaultwarden would
+      # try its default sqlite data/db.sqlite3 and crash on startup. the
+      # connection goes through the local unix socket, so the vaultwarden
+      # role authenticates via peer auth (see services.postgresql below and
+      # ../postgresql)
+      DATABASE_URL = "postgresql:///vaultwarden?host=/run/postgresql";
+
       # signups are managed manually by the admin; the admin panel is enabled
       # by the ADMIN_TOKEN secret provided through the sops-rendered
       # environment file (see below)
@@ -33,6 +41,19 @@ in
     # this file via its EnvironmentFile, so the admin panel is enabled
     # without any further configuration.
     environmentFile = config.sops.templates."vaultwarden-env".path;
+  };
+
+  # the postgres backend needs a database and a role: create them on the
+  # wranHearst postgres server (see ../postgresql). the role is authenticated
+  # by peer auth over the unix socket (DATABASE_URL above), so no password
+  services.postgresql = {
+    ensureDatabases = [ "vaultwarden" ];
+    ensureUsers = [
+      {
+        name = "vaultwarden";
+        ensureDBOwnership = true;
+      }
+    ];
   };
 
   # vaultwarden secrets, decrypted from the host's sops file (same pattern as
@@ -64,7 +85,13 @@ in
     # sops-install-secrets.service unit (useSystemdActivation is set in
     # ../security); on hosts where sops-nix runs as a plain activation script
     # the unit does not exist and this ordering is a harmless no-op
-    after = [ "sops-install-secrets.service" ];
+    after = [
+      "sops-install-secrets.service"
+      # wait for the postgres server (which creates the vaultwarden database
+      # and role via ensureDatabases/ensureUsers above) before connecting
+      "postgresql.target"
+    ];
+    requires = [ "postgresql.target" ];
   };
 
   # the vaultwarden state must be persisted explicitly
