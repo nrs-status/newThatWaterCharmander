@@ -33,7 +33,7 @@ let
   ensureUser = user: isAdmin: ''
     ${forgejoCmd} admin user create \
       ${lib.optionalString isAdmin "--admin"} \
-      --email "${user}@wranHearst.local" \
+      --email "${user}@${config.tailnet.baseDomain}" \
       --username ${user} \
       --must-change-password=false \
       --password "$(tr -d '\n' < ${passwordDir}/${user})" || true
@@ -50,8 +50,8 @@ in
     settings = {
       DEFAULT.APP_NAME = "forgejo";
       server = {
-        DOMAIN = "wranHearst.local";
-        ROOT_URL = "http://wranHearst.local:${toString forgejoPort}/";
+        DOMAIN = config.tailnet.magicFqdn;
+        ROOT_URL = "http://${config.tailnet.magicFqdn}:${toString forgejoPort}/";
         HTTP_ADDR = "0.0.0.0"; # reachable from the LAN
         HTTP_PORT = forgejoPort;
       };
@@ -118,17 +118,8 @@ in
   # ../garage, ../openBao, ../vaultWarden, ../kubernetes)
   environment.persistence."/persist".directories = [ cfg.stateDir ];
 
-  # advertise the forgejo web UI over mDNS so it is discoverable on the
-  # LAN as wranHearst.local (publishing itself is configured in ../avahi.nix)
-  services.avahi.extraServiceFiles.forgejo = ''
-    <?xml version="1.0" standalone='no'?><!--*-nxml-*-->
-    <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-    <service-group>
-      <name replace-wildcards="yes">%h forgejo</name>
-      <service>
-        <type>_http._tcp</type>
-        <port>${toString forgejoPort}</port>
-      </service>
-    </service-group>
-  '';
+  # advertise the forgejo web UI over the headscale tailnet (see
+  # ../headscale): it is reachable at ${config.tailnet.magicFqdn}:${toString forgejoPort}
+  # from every enrolled host (augtibcalcla, lanchamarcou) via MagicDNS. the
+  # old mDNS/Avahi advertisement (_http._tcp via services.avahi) was removed.
 }

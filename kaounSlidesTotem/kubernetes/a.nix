@@ -22,15 +22,15 @@ let
       (assertEq "wranHearst initializes the cluster" true (k3s "wranHearst").clusterInit)
       (assertEq "wranHearst has no serverAddr (it is the server)" "" (k3s "wranHearst").serverAddr)
       (assertEq
-        "wranHearst API server is reachable at its well-known address"
-        "https://wranHearst:6443"
+        "wranHearst API server is reachable at its MagicDNS (tailnet) address"
+        "https://${configs.wranHearst.config.tailnet.magicFqdn}:6443"
         (kubernetes "wranHearst").serverAddr
       )
       (assertEq
-        "wranHearst exposes its hostname and mDNS name in the TLS SANs"
+        "wranHearst exposes its hostname and MagicDNS (tailnet) name in the TLS SANs"
         [
           "--tls-san wranHearst"
-          "--tls-san wranHearst.local"
+          "--tls-san ${configs.wranHearst.config.tailnet.magicFqdn}"
         ]
         (filter (flag: lib.hasPrefix "--tls-san" flag) (k3s "wranHearst").extraFlags)
       )
@@ -83,7 +83,7 @@ let
     ++ (map
       (
         host:
-        assertEq "${host} registers with the wranHearst control host" "https://wranHearst:6443" (k3s host).serverAddr
+        assertEq "${host} registers with the wranHearst control host over the tailnet" "https://${configs.wranHearst.config.tailnet.magicFqdn}:6443" (k3s host).serverAddr
       )
       [
         "lanchamarcou"

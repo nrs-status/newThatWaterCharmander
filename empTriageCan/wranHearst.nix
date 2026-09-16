@@ -24,7 +24,7 @@ inputsForModulesExceptPkgs:
     "./vaultWarden"
     "./openBao"
     "./impermanence"
-    "./avahi.nix"
+    "./headscale"
     "./bootIntrospection"
     "./openssh.nix"
   ];

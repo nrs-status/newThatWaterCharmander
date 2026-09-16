@@ -99,16 +99,7 @@ in
 
   networking.firewall.allowedTCPPorts = [ vaultwardenPort ];
 
-  # advertise the vaultwarden API over mDNS (see ../avahi.nix) so the LAN
-  # clients can discover it as wranHearst.local
-  services.avahi.extraServiceFiles.vaultwarden = ''
-    <?xml version="1.0" standalone='no'?><!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-    <service-group>
-      <name replace-wildcards="yes">vaultwarden on %h</name>
-      <service>
-        <type>_http._tcp</type>
-        <port>${toString vaultwardenPort}</port>
-      </service>
-    </service-group>
-  '';
+  # vaultwarden is reachable over the headscale tailnet (see ../headscale) as
+  # wranHearst.tailnet.internal; the old mDNS (_http._tcp via services.avahi)
+  # advertisement was removed
 }

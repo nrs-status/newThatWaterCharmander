@@ -9,6 +9,12 @@
 { config, lib, ... }:
 let
   cfg = config.kubernetes;
+  # MagicDNS FQDN of the control host (wranHearst.<baseDomain>, served by the
+  # headscale tailnet; see ../headscale). the tailnet module is imported by
+  # every host of the repo; guarded so standalone imports (e.g. the cluster
+  # VM test in ../../kaounSlidesTotem/kubernetes) still evaluate.
+  magicFqdn =
+    if config ? tailnet then config.tailnet.magicFqdn else null;
 in
 {
   options.kubernetes = {
@@ -26,7 +32,11 @@ in
 
     serverAddr = lib.mkOption {
       type = lib.types.str;
-      default = "https://wranHearst:6443";
+      # the workers reach the control host over the headscale tailnet via its
+      # MagicDNS name (see ../headscale); without the tailnet module (e.g. the
+      # standalone cluster VM test) the plain hostname is kept
+      default =
+        if config ? tailnet then "https://${config.tailnet.magicFqdn}:6443" else "https://wranHearst:6443";
       description = "Address of the control host's k3s API server, used by workers to join the cluster.";
     };
 
@@ -34,8 +44,9 @@ in
       type = lib.types.str;
       default = "wranHearst";
       description = ''
-        DNS name of the control host. It is added to the API server's TLS SANs
-        (plain and `.local`, for mDNS) so that workers can connect by name.
+        DNS name of the control host. It is added to the API server's TLS
+        SANs (plain, and the MagicDNS FQDN of the headscale tailnet, see
+        ../headscale) so that workers can connect by name.
       '';
     };
 
@@ -73,10 +84,14 @@ in
       nodeIP = lib.mkIf (cfg.nodeIP != null) cfg.nodeIP;
       extraFlags =
         cfg.extraFlags
-        ++ lib.optionals (cfg.role == "control") [
-          "--tls-san ${cfg.serverName}"
-          "--tls-san ${cfg.serverName}.local" # mDNS name, published by avahi
-        ];
+        ++ lib.optionals (cfg.role == "control") (
+          [
+            "--tls-san ${cfg.serverName}"
+          ]
+          ++ lib.optionals (config ? tailnet) [
+            "--tls-san ${config.tailnet.magicFqdn}" # MagicDNS name, headscale tailnet
+          ]
+        );
     };
 
     # Keeps the k3s cluster state across reboots.

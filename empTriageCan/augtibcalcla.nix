@@ -13,7 +13,7 @@ inputsForModulesExceptPkgs:
     "./keyRemappings.nix"
     "./augtibcalcla"
     "./bootIntrospection"
-    "./avahi.nix"
+    "./headscale"
     "./telegraf"
     "./kubernetes"
     "./sway"

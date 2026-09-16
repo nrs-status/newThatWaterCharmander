@@ -67,9 +67,13 @@ in
       outputs = {
         postgresql = [
           {
-            # wranHearst.local resolves via avahi/mDNS (see ../avahi.nix);
-            # the server only accepts scram-sha-256 from private ranges
-            connection = "postgres://${credentials.telegrafUser}:${credentials.telegrafPassword}@wranHearst.local:5432/${credentials.telegrafDatabase}?sslmode=disable";
+            # wranHearst.tailnet.internal resolves via the headscale tailnet's
+            # MagicDNS (see ../headscale); the host is enrolled into the
+            # tailnet, so the connection goes over the tailscale overlay and
+            # the server accepts scram-sha-256 from the tailnet range
+            # (100.64.0.0/10, see ../postgresql). the old mDNS name
+            # wranHearst.local is no longer used anywhere.
+            connection = "postgres://${credentials.telegrafUser}:${credentials.telegrafPassword}@${config.tailnet.magicFqdn}:5432/${credentials.telegrafDatabase}?sslmode=disable";
             # one table per host on wranHearst (telemetry_augtibcalcla /
             # telemetry_lanchamarcou, created by ../postgresql's schema)
             name_override = "telemetry_${config.networking.hostName}";

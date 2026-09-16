@@ -32,10 +32,15 @@ in
       host  ${telegrafCredentials.telegrafDatabase} ${telegrafCredentials.telegrafUser} 172.16.0.0/12   scram-sha-256
       host  ${telegrafCredentials.telegrafDatabase} ${telegrafCredentials.telegrafUser} 192.168.0.0/16  scram-sha-256
       host  ${telegrafCredentials.telegrafDatabase} ${telegrafCredentials.telegrafUser} ::1/128         scram-sha-256
+      # the tailnet (see ../headscale): the agent hosts stream telemetry over
+      # the tailscale overlay from wranHearst.tailnet.internal, which lands on
+      # the tailscale0 interface with an address in 100.64.0.0/10
+      host  ${telegrafCredentials.telegrafDatabase} ${telegrafCredentials.telegrafUser} 100.64.0.0/10    scram-sha-256
       host  ${arunmanCredentials.arunmanDatabase} ${arunmanCredentials.arunmanUser} 10.0.0.0/8       scram-sha-256
       host  ${arunmanCredentials.arunmanDatabase} ${arunmanCredentials.arunmanUser} 172.16.0.0/12   scram-sha-256
       host  ${arunmanCredentials.arunmanDatabase} ${arunmanCredentials.arunmanUser} 192.168.0.0/16  scram-sha-256
       host  ${arunmanCredentials.arunmanDatabase} ${arunmanCredentials.arunmanUser} ::1/128         scram-sha-256
+      host  ${arunmanCredentials.arunmanDatabase} ${arunmanCredentials.arunmanUser} 100.64.0.0/10    scram-sha-256
     '';
 
     ensureDatabases = [
@@ -119,17 +124,7 @@ in
   # the agent hosts need to reach the postgresql port over the LAN
   networking.firewall.allowedTCPPorts = [ 5432 ];
 
-  # advertise the postgresql server over mDNS (see ../avahi.nix) so the agent
-  # hosts can discover it as wranHearst.local instead of hardcoding addresses
-  services.avahi.extraServiceFiles.postgresql = ''
-    <?xml version="1.0" standalone='no'?><!--*-nxml-*-->
-    <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-    <service-group>
-      <name replace-wildcards="yes">postgresql on %h</name>
-      <service>
-        <type>_postgresql._tcp</type>
-        <port>5432</port>
-      </service>
-    </service-group>
-  '';
+  # postgresql is reachable over the headscale tailnet (see ../headscale) as
+  # wranHearst.tailnet.internal; the old mDNS (_postgresql._tcp via
+  # services.avahi) advertisement was removed
 }

@@ -13,7 +13,7 @@ inputsForModulesExceptPkgs:
     "./keyRemappings.nix"
     "./lanchamarcou"
     "./bootIntrospection"
-    "./avahi.nix"
+    "./headscale"
     "./telegraf"
     "./kubernetes"
     "./impermanence"

@@ -1,5 +1,6 @@
 {
   pkgs,
+  config,
   ...
 }:
 let
@@ -28,9 +29,11 @@ in
         tls_disable = 1;
       };
 
-      # advertised API/cluster addresses so LAN clients know where to connect
-      api_addr = "http://wranHearst.local:${toString openBaoPort}";
-      cluster_addr = "http://wranHearst.local:8201";
+      # advertised API/cluster addresses: tailnet clients (augtibcalcla,
+      # lanchamarcou) resolve wranHearst via MagicDNS (see ../headscale); the
+      # old mDNS name wranHearst.local is no longer used anywhere
+      api_addr = "http://${config.tailnet.magicFqdn}:${toString openBaoPort}";
+      cluster_addr = "http://${config.tailnet.magicFqdn}:8201";
     };
   };
 
@@ -50,16 +53,7 @@ in
     ];
   };
 
-  # advertise openbao over mDNS (see ../avahi.nix) so LAN clients can
-  # discover it as wranHearst.local via e.g. `avahi-browse -r _openbao._tcp`
-  services.avahi.extraServiceFiles.openbao = ''
-    <?xml version="1.0" standalone='no'?><!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-    <service-group>
-      <name replace-wildcards="yes">openbao on %h</name>
-      <service>
-        <type>_openbao._tcp</type>
-        <port>${toString openBaoPort}</port>
-      </service>
-    </service-group>
-  '';
+  # openbao is reachable over the headscale tailnet (see ../headscale) as
+  # wranHearst.tailnet.internal; the old mDNS (_openbao._tcp via
+  # services.avahi) advertisement was removed
 }

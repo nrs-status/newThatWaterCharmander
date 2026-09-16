@@ -61,6 +61,17 @@
         sopsFlake = inputs.sopsFlake;
         impermanenceFlake = inputs.impermanenceFlake;
       };
+
+      # vm test for the headscale module set (see ./kaounSlidesTotem/headscale-test):
+      # a three-node tailnet (wranHearst runs the headscale coordination server
+      # and hosts the services, augtibcalcla / lanchamarcou enroll as clients
+      # and reach the services via MagicDNS); run with
+      #   nix build .#checks.x86_64-linux.headscale-vm-test
+      checks.x86_64-linux.headscale-vm-test = import ./kaounSlidesTotem/headscale-test {
+        inherit pkgsLib;
+        nixpkgsFlake = inputs.nixpkgs;
+        impermanenceFlake = inputs.impermanenceFlake;
+      };
       colmenaHive = localLib.mkColmenaHive (
         pkgsLib.recursiveUpdate systemArgs {
           colmenaArgOverrideFn = arg: builtins.removeAttrs arg [ "wranHearst" ];

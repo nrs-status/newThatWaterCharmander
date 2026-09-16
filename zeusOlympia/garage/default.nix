@@ -7,6 +7,9 @@ let
   s3Port = 3900;
   rpcPort = 3901;
   webPort = 3902;
+  # MagicDNS base domain of the headscale tailnet (see ../headscale); guarded
+  # so standalone imports (e.g. the garage VM test) still evaluate
+  tailnetBaseDomain = if config ? tailnet then config.tailnet.baseDomain else "garage.local";
 in
 {
   services.garage = {
@@ -23,8 +26,12 @@ in
       };
       s3_web = {
         bind_addr = "[::]:${toString webPort}";
-        # websites are served as <bucket>.garage.local:<webPort>
-        root_domain = ".garage.local";
+        # virtual-host routing key for website buckets
+        # (<bucket>.<root_domain>); reaching wranHearst itself goes via
+        # MagicDNS (wranHearst.${tailnetBaseDomain}, see ../headscale).
+        # per-bucket vhost names would need extra DNS records in the tailnet
+        # config; the S3 API below is always available path-agnostically.
+        root_domain = ".garage.${tailnetBaseDomain}";
         index = "index.html";
       };
       admin = {
@@ -139,24 +146,9 @@ in
     webPort
   ];
 
-  # advertise the store over mDNS (see ../avahi.nix) so the agent hosts
-  # lanchamarcou / augtibcalcla can discover it as wranHearst.local instead
-  # of hardcoding addresses (same pattern as ../postgresql and ../forgejo)
-  services.avahi.extraServiceFiles.garage = ''
-    <?xml version="1.0" standalone='no'?><!--*-nxml-*-->
-    <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-    <service-group>
-      <name replace-wildcards="yes">garage on %h</name>
-      <service>
-        <type>_s3._tcp</type>
-        <port>${toString s3Port}</port>
-        <txt-record>region=garage</txt-record>
-      </service>
-      <service>
-        <type>_http._tcp</type>
-        <port>${toString webPort}</port>
-        <txt-record>path=/</txt-record>
-      </service>
-    </service-group>
-  '';
+  # the store is reachable over the headscale tailnet (see ../headscale) at
+  # wranHearst.${tailnetBaseDomain}: the agent hosts
+  # lanchamarcou / augtibcalcla are enrolled into the tailnet and resolve the
+  # host via MagicDNS instead of the old mDNS name wranHearst.local
+  # (same pattern as ../postgresql, ../forgejo, ../harmonia)
 }
