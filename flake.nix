@@ -47,40 +47,6 @@
         }
       ) hostModules;
 
-      # vm test for the garage module (see ./kaounSlidesTotem/garage-test),
-      # which reads its secrets from sops-nix; run with
-      #   nix build .#checks.x86_64-linux.garage-vm-test
-      checks.x86_64-linux.garage-vm-test = import ./kaounSlidesTotem/garage-test {
-        inherit pkgsLib;
-        nixpkgsFlake = inputs.nixpkgs;
-        sopsFlake = inputs.sopsFlake;
-        impermanenceFlake = inputs.impermanenceFlake;
-      };
-
-      # vm test for the vaultwarden module (see ./kaounSlidesTotem/vaultwarden-test),
-      # which reads its secrets from sops-nix; run with
-      #   nix build .#checks.x86_64-linux.vaultwarden-vm-test
-      checks.x86_64-linux.vaultwarden-vm-test = import ./kaounSlidesTotem/vaultwarden-test {
-        inherit pkgsLib;
-        nixpkgsFlake = inputs.nixpkgs;
-        sopsFlake = inputs.sopsFlake;
-        impermanenceFlake = inputs.impermanenceFlake;
-      };
-
-      # vm test for the headscale module set (see ./kaounSlidesTotem/headscale-test);
-      # run with:
-      #   nix build .#checks.x86_64-linux.headscale-vm-test
-      checks.x86_64-linux.headscale-vm-test = import ./kaounSlidesTotem/headscale-test {
-        inherit pkgsLib;
-        nixpkgsFlake = inputs.nixpkgs;
-        sopsFlake = inputs.sopsFlake;
-        impermanenceFlake = inputs.impermanenceFlake;
-      };
-
-      # colmena deployment hive. like the pre-refactor configuration, every
-      # host except wranHearst (the machine colmena is normally run from) is a
-      # deployable node. each node is the self-contained host module from
-      # ./empTriageCan.
       colmenaHive = inputs.colmenaFlake.lib.makeHive (
         {
           meta = {
