@@ -9,7 +9,7 @@
         "baghdadPlane"
         "daguerreBrick"
         "smithShirtCube"
-        "kierLeapMount"
+        "afg-ichigoGesticulates"
       ]
       ++ config.miscStaticVals.sharedPersistedUserDirs;
 
