@@ -114,7 +114,12 @@ in
             # `mux=on` keeps the QEMU HMP monitor on the same stdio chardev,
             # exactly like the old `-serial mon:stdio`; `logfile` records the
             # traffic (the directory is created by the tmpfiles rule above).
-            "-chardev stdio,id=vm-serial,mux=on,logfile=/var/log/vm-serial/${config.networking.hostName}.log,logappend=on"
+            # The logfile name contains a timestamp of the moment the VM
+            # starts: `virtualisation.qemu.options` strings are interpolated
+            # verbatim into the generated bash runner script, so the shell
+            # command substitution `$(date ...)` is evaluated every time the
+            # runner is executed, giving each VM run its own log file.
+            "-chardev stdio,id=vm-serial,mux=on,logfile=/var/log/vm-serial/${config.networking.hostName}-$(date +%Y%m%dT%H%M%S).log,logappend=on"
             "-object monitor-hmp,id=vm-monitor,chardev=vm-serial"
             "-serial chardev:vm-serial"
 
