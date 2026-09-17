@@ -15,6 +15,7 @@
     pciutils # for debugging drivers and hardware
     age #encryption
     gnupg #encryption
+    pinentry-curses #required for gpg
     sops #encryption manager
     ssh-to-age #for turn host ssh key into age key for allowing root to decrypt with sops
     unzip
