@@ -1,7 +1,6 @@
 { localLib, localModules, ... }:
 {
   imports = [
-    ./security
     (localLib.mkDirectoryImporterModule ./.)
 
     # modules that every host imported in the pre-refactor (main) configuration

@@ -1,7 +1,7 @@
 { localModules, localLib, ... }:
 {
   imports =
-    [ ../louSelfHit-sofa (localLib.mkDirectoryImporterModule ./.) ./vm ] ++ (with localModules; [
+    [ ../louSelfHit-sofa (localLib.mkDirectoryImporterModule ./.) ] ++ (with localModules; [
       #ui
       sway
       audio
