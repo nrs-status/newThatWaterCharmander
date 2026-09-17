@@ -1,10 +1,12 @@
-{ config, ... }:
+{ config, localModules, ... }:
 let
   # MagicDNS FQDN of wranHearst in the headscale tailnet (see ./headscale);
   # guarded so imports without the tailnet module still evaluate
   magicFqdn = if config ? tailnet then config.tailnet.magicFqdn else "wranHearst.home";
 in
 {
+  imports = [ localModules.nix ];
+
   nix.settings = {
     substituters = [
         # NOTE: this uses the MagicDNS name of wranHearst in the headscale
