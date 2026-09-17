@@ -107,15 +107,18 @@
           ];
 
           qemu.options = [
-          "-display none" # no local window, graphical access goes through SPICE/VNC
-          "-serial mon:stdio" # connects VM's emulated serial port to host user's terminal. This is what allows to get a login shell
+            "-display none" # no local window, graphical access goes through SPICE/VNC
+            "-serial mon:stdio" # connects VM's emulated serial port to host user's terminal. This is what allows to get a login shell
 
-          #spice display + vdagent channel for clipboard sharing
-          "-vga qxl"
-          "-spice port=5901,addr=127.0.0.1,disable-ticketing=on" # with this, you can run `wranHearst-vm-view` (or `remote-viewer "spice://127.0.0.1:5901"`) to get a graphical interface
-          "-device virtio-serial-pci"
-          "-chardev spicevmc,id=vdagent0,name=vdagent"
-          "-device virtserialport,chardev=vdagent0,name=com.redhat.spice.0"
+            #spice display + vdagent channel for clipboard sharing
+            "-vga qxl"
+            "-spice port=5901,addr=127.0.0.1,disable-ticketing=on" # with this, you can run `wranHearst-vm-view` (or `remote-viewer "spice://127.0.0.1:5901"`) to get a graphical interface
+            "-device virtio-serial-pci"
+            "-chardev spicevmc,id=vdagent0,name=vdagent"
+            "-device virtserialport,chardev=vdagent0,name=com.redhat.spice.0"
+
+            # a guest kernel panic terminates QEMU instead of hanging forever
+            "-no-reboot"
 
           ];
         };
