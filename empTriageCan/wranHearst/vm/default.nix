@@ -157,7 +157,11 @@ in
       # be explicit about the DRM/KMS backend: wlroots' auto-detection would
       # otherwise choose the nested Wayland backend whenever WAYLAND_DISPLAY
       # happens to be set in the environment, and fail before touching the GPU.
-      WLR_BACKENDS = "drm";
+      # NOTE: when WLR_BACKENDS is set, wlroots loads *only* the listed backends,
+      # and input lives in the separate "libinput" backend. Listing just "drm"
+      # gives a compositor with a working display but zero input devices (no
+      # clicks, no keyboard) -- including from VNC/SPICE -- so both are listed.
+      WLR_BACKENDS = "drm,libinput";
       WLR_RENDERER = "pixman";
       # wlroots also refuses explicit software fallback unless asked; harmless
       # when pixman is selected explicitly, but keeps things working if a
