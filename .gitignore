@@ -1,0 +1,9 @@
+# nixos-rebuild build-vm writes the VM's disk image into the current
+# directory by default (`nixos-rebuild build-vm` sets virtualisation.diskImage
+# to ./<hostname>.qcow2); it is large, machine-local state and must never be
+# committed. Add files here if more host-specific build outputs appear.
+/wranHearst.qcow2
+
+# `nix build` result symlinks
+/result
+/result-*
