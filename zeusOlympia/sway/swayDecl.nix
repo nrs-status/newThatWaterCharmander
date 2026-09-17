@@ -12,7 +12,12 @@ in
 {
   enable = true;
   config = rec {
-    bars = [ { command = waybarCommand; } ];
+    # waybar is launched from the `startup` list below rather than through a
+    # sway `bar { swaybar_command = ...; }` block: the bar that home-manager
+    # would generate for `bars` is hidden by default and never spawns, so it
+    # only ever showed up as dead configuration. `waybarCommand` there already
+    # includes the generated config and stylesheet.
+    bars = [ ];
 
     colors = {
       background = gruvbox.dark.bg;
@@ -117,7 +122,7 @@ in
 
     startup = [
       { command = "mako"; }
-      { command = "exec swaymsg 'exec ${pkgsLib.getExe config.programs.waybar.package}'"; }
+      { command = "exec swaymsg 'exec ${waybarCommand}'"; }
       {
         command = "${pkgsLib.getExe (
           import ./setupWorkspaces.nix { inherit pkgs pkgsLib frontArmToPlane; }

@@ -28,16 +28,21 @@
       enable = true;
       package = pkgs.sway;
       extraOptions = let
+        waybarStyle = import ./waybarStyle.nix;
         waybarConfigDeriv = localLib.mkWaybarConfig {
-          inherit pkgs;
-          waybarStyle = import ./waybarStyle.nix;
+          inherit pkgs waybarStyle;
           waybarNixConfig = import ./waybarDecl.nix { inherit pkgs pkgsLib; };
         };
+        # `waybarCommand` is run by sway's `exec` startup below. It must point at
+        # the `waybar` *executable* (`pkgs.waybar` alone expands to the package
+        # directory, which is not executable) and carry both the generated
+        # config and the generated stylesheet.
+        waybarStyleDeriv = pkgs.writeText "waybar-style.css" waybarStyle;
         swayConfigDeriv = localLib.mkSwayConfig {
           inherit pkgs;
           swayNixConfig = import ./swayDecl.nix {
             inherit pkgs frontArmToPlane pkgsLib config;
-            waybarCommand = "${pkgs.waybar} --config ${waybarConfigDeriv}";
+            waybarCommand = "${pkgsLib.getExe pkgs.waybar} --config ${waybarConfigDeriv} --style ${waybarStyleDeriv}";
           };
         };
       in [ "--config=${swayConfigDeriv}" ];

@@ -36,7 +36,7 @@
 #     work against the running session because the relevant environment
 #     variables are exported system-wide. An agent that normally runs on the
 #     host thus never has to touch the host's compositor to test sway.
-{ pkgsLib, pkgs, frontArmToPlane, ... }:
+{ pkgsLib, pkgs, ... }:
 let
   # the user the real host runs sway as; the VM runs the same user's session
   testUser = "sieyes";
@@ -184,7 +184,7 @@ in
     # ------------------------------------------------------------------
     virtualisation = {
       diskSize = 30000;
-      memorySize = 8192; # sway + the host's services + a browser
+      memorySize = 5120; # sway + the host's services + a browser
       cores = 4;
       graphics = true; #keeps console=tty0 console=ttyS0 available
 
