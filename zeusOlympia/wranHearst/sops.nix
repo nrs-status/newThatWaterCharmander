@@ -30,6 +30,11 @@
         sopsFile = "/etc/kierLeapMount/secrets.yaml";
         restartUnits = [ "sopsSSHAgent.service" ];
       };
+      "sieyes-gopass-store-key" = {
+        owner = "sieyes";
+        mode = "0400";
+        sopsFile = "/etc/kierLeapMount/secrets.yaml";
+      };
     };
 
   };
