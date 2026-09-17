@@ -36,16 +36,21 @@
         localModules = import ./zeusOlympia { inherit baseLib; };
       };
       hostModules = import ./empTriageCan { inherit baseLib; };
-    in
-    {
-      nixosConfigurations = builtins.mapAttrs (
-        _name: x:
+      vmModules = import ./freezCrawlTaco { inherit baseLib; };
+
+      mkNixosSystem =
+        specialargs: x:
         inputs.nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [ x ];
-          inherit specialArgs;
-        }
-      ) hostModules;
+          specialArgs = specialargs;
+        };
+
+    in
+    {
+      nixosConfigurations =
+        builtins.mapAttrs (_: mkNixosSystem specialArgs) hostModules
+        // builtins.mapAttrs (_: mkNixosSystem (specialArgs // { inherit hostModules; })) vmModules;
 
       colmenaHive = inputs.colmenaFlake.lib.makeHive (
         {
@@ -62,13 +67,19 @@
             { lib, ... }:
             {
               system.nixos.revision = lib.mkDefault inputs.nixpkgs.rev;
-              system.nixos.versionSuffix = lib.mkDefault ".${lib.substring 0 8 inputs.nixpkgs.lastModifiedDate}.${inputs.nixpkgs.shortRev}";
+              system.nixos.versionSuffix = lib.mkDefault ".${
+                lib.substring 0 8 inputs.nixpkgs.lastModifiedDate
+              }.${inputs.nixpkgs.shortRev}";
               # same as the nixpkgs flake's nixosSystem: pins nixpkgs in the system registry/NIX_PATH to the flake's sources
               nixpkgs.flake.source = lib.mkDefault inputs.nixpkgs.outPath;
             };
         }
         // builtins.mapAttrs (_: hostModule: { imports = [ hostModule ]; }) (
-          builtins.removeAttrs hostModules [ "wranHearst" ]
+          builtins.removeAttrs hostModules [
+            "wranHearst"
+            "wranHearst-minimal"
+            "wranHearst-gui"
+          ]
         )
       );
     };

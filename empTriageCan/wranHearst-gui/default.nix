@@ -1,15 +1,12 @@
 { localModules, localLib, ... }:
 {
   imports = [
-    ../wranHearst-gui
+    ../wranHearst-minimal
     (localLib.mkDirectoryImporterModule ./.)
   ]
   ++ (with localModules; [
-    forgejo
-    garage
-    harmonia
-    openBao
-    postgresql
-    vaultWarden
+    #ui
+    sway
+    audio
   ]);
 }
