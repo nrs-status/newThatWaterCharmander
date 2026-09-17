@@ -17,6 +17,8 @@
   };
 
   config = {
+    time.timeZone = "America/Toronto"; # IANA zone covering Montreal (America/Montreal is a legacy alias of it)
+
     environment = {
       variables = {
         EDITOR = "nvim";
