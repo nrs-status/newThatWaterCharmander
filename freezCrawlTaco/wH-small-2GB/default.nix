@@ -1,7 +1,6 @@
 {
   hostModules,
   localLib,
-  pkgs,
   ...
 }:
 {

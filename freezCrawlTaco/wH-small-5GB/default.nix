@@ -1,12 +1,12 @@
 {
   hostModules,
   localLib,
-  pkgs,
   ...
 }:
 {
   imports = [
     hostModules.wranHearst-minimal
+
     (localLib.mkDirectoryImporterModule ./.)
   ];
 
