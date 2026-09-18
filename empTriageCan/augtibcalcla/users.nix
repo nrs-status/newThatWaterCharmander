@@ -1,6 +1,6 @@
 { pkgs, frontArmToPlane, localModules, ... }:
 {
-  imports = [ localModules.shellCacher ];
+  # imports = [ localModules.shellCacher ];
 
   # shellCacher.shell = frontArmToPlane.devShells.x86_64-linux.headless;
   # # last-resort fallback for the shellCacher launcher (see zeusOlympia/shellCacher.nix)
