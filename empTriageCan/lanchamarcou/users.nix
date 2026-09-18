@@ -4,6 +4,8 @@
   imports = [ localModules.shellCacher ];
 
   shellCacher.shell = frontArmToPlane.devShells.x86_64-linux.headless;
+  # last-resort fallback for the shellCacher launcher (see zeusOlympia/shellCacher.nix)
+  shellCacher.flakeRef = "frontArmToPlane#headless";
 
 
   users.users = {

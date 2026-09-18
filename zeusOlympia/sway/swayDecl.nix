@@ -8,6 +8,16 @@
 }:
 let
   gruvbox = import ./gruvboxColors.nix;
+
+  # When the `shellCacher` module is imported, enter the host's dev shell
+  # through its launcher, which reads a Nix profile recorded at login instead
+  # of evaluating the flake on every terminal (see zeusOlympia/shellCacher.nix).
+  # Hosts that do not import the module keep the plain registry-flake command.
+  devShellCommand =
+    if (config.shellCacher.launcher or null) != null then
+      pkgsLib.getExe config.shellCacher.launcher
+    else
+      "nix develop frontArmToPlane#sieyes";
 in
 {
   enable = true;
@@ -84,8 +94,10 @@ in
         # interpolating the flake input: the latter yields a /nix/store copy of
         # the flake containing a `.git` entry, which makes `nix develop` treat it
         # as a git repo owned by root and fail (libgit2 ownership check), killing
-        # the terminal instantly.
-        "${modifier}+Return" = "exec ${pkgsLib.getExe pkgs.kitty} nix develop frontArmToPlane#sieyes";
+        # the terminal instantly. With the shellCacher module, `devShellCommand`
+        # is the launcher's absolute path (a single word, no shell quoting
+        # needed), which also avoids the flake evaluation per terminal.
+        "${modifier}+Return" = "exec ${pkgsLib.getExe pkgs.kitty} ${devShellCommand}";
         "${modifier}+Shift+backslash" = "splith";
         "${modifier}+minus" = "splitv";
         "${modifier}+z" = "exec killall -SIGUSR1 .waybar-wrapped";
@@ -125,7 +137,10 @@ in
       { command = "exec swaymsg 'exec ${waybarCommand}'"; }
       {
         command = "${pkgsLib.getExe (
-          import ./setupWorkspaces.nix { inherit pkgs pkgsLib frontArmToPlane; }
+          import ./setupWorkspaces.nix {
+            inherit pkgs pkgsLib frontArmToPlane;
+            devShellCommand = devShellCommand;
+          }
         )}";
       }
     ];
