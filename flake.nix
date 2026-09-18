@@ -13,10 +13,7 @@
   outputs =
     inputs:
     let
-      pkgsLib =
-        (import inputs.nixpkgs {
-          system = "x86_64-linux";
-        }).lib; # pkgsLib is only for functionality; individual profiles specify which nixpkgs they use for non-functionality-related calls
+      pkgsLib = inputs.peachRampSkateboard.pkgsLib; # pkgsLib is only for functionality; individual profiles specify which nixpkgs they use for non-functionality-related calls
       baseLib = inputs.peachRampSkateboard.baseLib;
       localLib = import ./heidRunOverCar {
         inherit baseLib pkgsLib;
