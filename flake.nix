@@ -8,6 +8,7 @@
     peachRampSkateboard.url = "github:nrs-status/newPeachRampSkateboard";
     frontArmToPlane.url = "github:nrs-status/newFrontArmToPlane";
     colmenaFlake.url = "github:zhaofengli/colmena";
+    direnv-instant.url = "github:Mic92/direnv-instant";
   };
 
   outputs =
@@ -31,6 +32,7 @@
         diskoFlake = inputs.diskoFlake;
         impermanenceFlake = inputs.impermanenceFlake;
         localModules = import ./zeusOlympia { inherit baseLib; };
+        direnv-instantFlake = inputs.direnv-instant;
       };
       hostModules = import ./empTriageCan { inherit baseLib; };
       vmModules = import ./freezCrawlTaco { inherit baseLib; };

@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, direnv-instantFlake, ... }:
 {
   programs.direnv = {
     enable = true;
@@ -6,6 +6,8 @@
     enableFishIntegration = true;
     nix-direnv.enable = true;
   };
+  imports = [ direnv-instantFlake.nixosModules.direnv-instant ];
+  programs.direnv-instant.enable = true;
   environment.systemPackages = with pkgs; [
     vim
     git
