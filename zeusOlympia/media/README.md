@@ -63,14 +63,20 @@ subscriptions.youtube_channels_as_tv_shows = {
 ## Things only the admin does (not you)
 
 - running `sudo nixos-rebuild switch` after this module changes
-- adding/removing indexers in Prowlarr and giving out accounts
+- adding/removing *private* (credentialed) indexers in Prowlarr and giving
+  out accounts (public indexers are listed in `prowlarrIndexers` in
+  `zeusOlympia/media/default.nix`)
 
 (First-boot setup of Jellyfin — the wizard, the accounts and the
- Series/Movies libraries — happens automatically on first boot. The same is
- true for Seerr: it signs itself in with the Jellyfin admin, registers
- Sonarr and Radarr with their `/srv/media/tv` and `/srv/media/movies` root
- folders and a quality profile, so requesting something on
- http://wranHearst:5055 works right after the first boot.)
+ Series/Movies libraries — happens automatically on first boot, with
+ realtime monitoring enabled so newly imported files appear without waiting
+ for the scheduled scan. The same is true for Seerr: it signs itself in with
+ the Jellyfin admin and registers Sonarr and Radarr with their
+ `/srv/media/tv` and `/srv/media/movies` root folders and a quality profile.
+ A second bootstrap then gives Sonarr and Radarr a qBittorrent download
+ client and registers both as Prowlarr applications, and Prowlarr is seeded
+ with the public indexer(s) listed in `prowlarrIndexers`, so an approved
+ request is searched, downloaded and imported without any manual setup.)
 
 ## Where the files live (read-only for you)
 

@@ -21,6 +21,12 @@
 # TV/movie libraries are set up declaratively by media-jellyfin-init.service
 # on first boot (the passwords live in this file, since Jellyfin offers no
 # declarative user-management option in nixpkgs).
+#
+# the connection from an approved Seerr request to an actual download is set
+# up declaratively too: media-seerr-init registers Sonarr/Radarr in Seerr and
+# media-arr-init gives both *arrs a qBittorrent download client plus a
+# Prowlarr-backed indexer (see the comments on those services), so requests
+# reach qBittorrent and, once imported, Jellyfin without manual setup.
 {
   config,
   lib,
@@ -37,6 +43,19 @@ let
   jellyfinAdminUser = "wranHearst";
   jellyfinAdminPassword = "whmedia";
 
+  # qBittorrent WebUI credentials, reused for the *arr download client below
+  # (the WebUI password is stored as a precomputed PBKDF2 hash in
+  # services.qbittorrent.serverConfig further down; the plaintext hash source
+  # is kept in sync with these variables by hand).
+  qbittorrentUser = jellyfinAdminUser;
+  qbittorrentPassword = jellyfinAdminPassword;
+
+  # Public trackers (Prowlarr definition names) that media-arr-init adds on
+  # first boot. These need no account, so the request -> download chain works
+  # out of the box; private/credentialed indexers are still added by an admin
+  # in the Prowlarr UI. Add to this list to seed more indexers declaratively.
+  prowlarrIndexers = [ "thepiratebay" ];
+
   # completes Jellyfin's first-boot setup wizard declaratively and creates
   # the two service accounts (see the comment on the unit below).
   # The whole flow is retried until a deadline: Jellyfin restarts internally
@@ -47,7 +66,10 @@ let
     set -uo pipefail
 
     base=http://127.0.0.1:8096
-    marker=${config.services.jellyfin.configDir}/.nixos-media-users-created
+    # v2: this marker was bumped so that existing installs (whose libraries
+    # were created before media-jellyfin-init enabled realtime monitoring)
+    # run the script once more and pick up the new library options
+    marker=${config.services.jellyfin.configDir}/.nixos-media-users-created-v2
     curl=${lib.getExe pkgs.curl}
     jq=${lib.getExe pkgs.jq}
     sleep=${lib.getExe' pkgs.coreutils "sleep"}
@@ -121,21 +143,35 @@ let
           -d '{"Name":"sieyes","Password":"sieyesmedia"}'
       fi
 
-      # make sure the library folders exist so accounts can actually watch
-      # something; skipped if Jellyfin already has libraries (manual setup)
+      # make sure the library folders exist and notice new files promptly.
+      # Realtime monitoring is enabled so a file imported by Sonarr/Radarr
+      # appears in Jellyfin within seconds instead of waiting for the (12h)
+      # scheduled library scan; existing libraries are updated in place,
+      # because a rebuild has to fix installs whose libraries were created
+      # before EnableRealtimeMonitor was set.
       folders=$($curl -fsS -H "$apiHeader" "$base/Library/VirtualFolders") || folders=""
-      if [ -n "$folders" ]; then
-        if ! echo "$folders" | $jq -r '.[].Name' | $grep -qx 'Series'; then
-          $curl -fsS -X POST "$base/Library/VirtualFolders?name=Series&collectionType=tvshows" \
+      ensure_library() {
+        local name=$1 collection=$2 path=$3
+        local folder id options
+        folder=$(printf '%s' "$folders" | $jq -c --arg n "$name" '[.[] | select(.Name == $n)][0]')
+        if [ -z "$folder" ] || [ "$folder" = "null" ]; then
+          $curl -fsS -X POST "$base/Library/VirtualFolders?name=$name&collectionType=$collection" \
             -H "$apiHeader" -H 'Content-Type: application/json' \
-            -d '{"LibraryOptions":{"PathInfos":[{"Path":"${mediaRoot}/tv"}]}}'
+            -d "$($jq -n --arg p "$path" '{LibraryOptions:{EnableRealtimeMonitor:true,PathInfos:[{Path:$p}]}}')"
+          return
         fi
-        if ! echo "$folders" | $jq -r '.[].Name' | $grep -qx 'Movies'; then
-          $curl -fsS -X POST "$base/Library/VirtualFolders?name=Movies&collectionType=movies" \
-            -H "$apiHeader" -H 'Content-Type: application/json' \
-            -d '{"LibraryOptions":{"PathInfos":[{"Path":"${mediaRoot}/movies"}]}}'
+        if [ "$(printf '%s' "$folder" | $jq -r '.LibraryOptions.EnableRealtimeMonitor // false')" = "true" ]; then
+          return
         fi
-      fi
+        id=$(printf '%s' "$folder" | $jq -r '.ItemId')
+        options=$(printf '%s' "$folder" | $jq -c '.LibraryOptions')
+        $jq -n --arg id "$id" --argjson opts "$options" \
+          '{Id:$id, LibraryOptions:($opts + {EnableRealtimeMonitor:true})}' \
+          | $curl -fsS -X POST "$base/Library/VirtualFolders/LibraryOptions" \
+              -H "$apiHeader" -H 'Content-Type: application/json' --data @-
+      }
+      ensure_library Series tvshows "${mediaRoot}/tv"
+      ensure_library Movies movies "${mediaRoot}/movies"
     )
 
     # retry until a deadline (jellyfin keeps restarting while migrating on a
@@ -380,6 +416,217 @@ let
       $sleep 5
     done
   '';
+
+  # Declarative *arr/Prowlarr wiring, closing the gap left by seerrInit.
+  #
+  # seerrInit only registers Sonarr and Radarr *in Seerr*; it never gives the
+  # *arrs a download client or an indexer. Without those an approved request is
+  # added to Radarr/Sonarr (and shows up in Seerr as "requested") but nothing
+  # ever searches: Radarr logs "Searching indexers for [...]. 0 active
+  # indexers", grabs nothing and therefore never hands a torrent to
+  # qBittorrent or imports anything into Jellyfin. This unit wires the chain
+  # up on first boot:
+  #   1. adds qBittorrent as the download client of Sonarr and Radarr,
+  #   2. registers Sonarr and Radarr as Prowlarr applications, and
+  #   3. adds the public indexers from `prowlarrIndexers` to Prowlarr,
+  # after which Prowlarr pushes a Torznab indexer to both *arrs.
+  #
+  # Like the other bootstrap units it is idempotent (each step inspects the
+  # current configuration first), guarded by a marker file and retried until a
+  # deadline, because on a fresh boot the services are still starting (and
+  # Prowlarr may still be fetching its indexer definitions).
+  mediaArrInit = pkgs.writeShellScript "media-arr-init" ''
+    set -uo pipefail
+
+    sonarrBase=http://127.0.0.1:8989
+    radarrBase=http://127.0.0.1:7878
+    prowlarrBase=http://127.0.0.1:9696
+    marker=${config.services.sonarr.dataDir}/.nixos-media-arr-configured
+
+    curl=${lib.getExe pkgs.curl}
+    jq=${lib.getExe pkgs.jq}
+    sleep=${lib.getExe' pkgs.coreutils "sleep"}
+    touch=${lib.getExe' pkgs.coreutils "touch"}
+    seq=${lib.getExe' pkgs.coreutils "seq"}
+    date=${lib.getExe' pkgs.coreutils "date"}
+    sed=${lib.getExe pkgs.gnused}
+    head=${lib.getExe' pkgs.coreutils "head"}
+
+    [ -f "$marker" ] && exit 0
+
+    # wait for a config.xml to appear and print the *arr API key it contains
+    read_api_key() {
+      local file=$1 key
+      for _ in $($seq 1 300); do
+        if [ -f "$file" ]; then
+          key=$($sed -n 's:.*<ApiKey>\([^<]*\)</ApiKey>.*:\1:p' "$file" | $head -n1)
+          if [ -n "$key" ]; then
+            printf '%s' "$key"
+            return 0
+          fi
+        fi
+        $sleep 2
+      done
+      return 1
+    }
+
+    # create or update the qBittorrent download client on one *arr
+    ensure_download_client() {
+      local base=$1 key=$2 categoryField=$3 category=$4
+      local schema body existing id
+      schema=$($curl -fsS -H "X-Api-Key: $key" "$base/api/v3/downloadclient/schema")
+      body=$(printf '%s' "$schema" | $jq \
+        --arg host 127.0.0.1 \
+        --argjson port ${toString config.services.qbittorrent.webuiPort} \
+        --arg user "${qbittorrentUser}" \
+        --arg pass "${qbittorrentPassword}" \
+        --arg catfield "$categoryField" \
+        --arg cat "$category" \
+        '[.[] | select(.implementation == "QBittorrent")][0]
+         | .enable = true
+         | .name = "qBittorrent"
+         | .fields = (.fields | map(
+             if .name == "host" then .value = $host
+             elif .name == "port" then .value = $port
+             elif .name == "useSsl" then .value = false
+             elif .name == "username" then .value = $user
+             elif .name == "password" then .value = $pass
+             elif .name == $catfield then .value = $cat
+             else . end))')
+      existing=$($curl -fsS -H "X-Api-Key: $key" "$base/api/v3/downloadclient")
+      id=$(printf '%s' "$existing" | $jq -r '([.[] | select(.name == "qBittorrent")][0].id) // empty')
+      if [ -n "$id" ]; then
+        printf '%s' "$body" | $jq --argjson id "$id" '.id = $id' \
+          | $curl -fsS -X PUT -H "X-Api-Key: $key" -H 'Content-Type: application/json' --data @- "$base/api/v3/downloadclient/$id" >/dev/null
+      else
+        printf '%s' "$body" \
+          | $curl -fsS -X POST -H "X-Api-Key: $key" -H 'Content-Type: application/json' --data @- "$base/api/v3/downloadclient" >/dev/null
+      fi
+    }
+
+    # register one Prowlarr application (Sonarr/Radarr) if missing
+    ensure_application() {
+      local impl=$1 key=$2 port=$3
+      local schema body existing id
+      schema=$($curl -fsS -H "X-Api-Key: $prowlarrKey" "$prowlarrBase/api/v1/applications/schema")
+      body=$(printf '%s' "$schema" | $jq \
+        --arg impl "$impl" \
+        --arg url "http://127.0.0.1:$port" \
+        --arg key "$key" \
+        '[.[] | select(.implementation == $impl)][0]
+         | .enable = true
+         | .name = $impl
+         | .fields = (.fields | map(
+             if .name == "prowlarrUrl" then .value = "http://127.0.0.1:9696"
+             elif .name == "baseUrl" then .value = $url
+             elif .name == "apiKey" then .value = $key
+             else . end))')
+      existing=$($curl -fsS -H "X-Api-Key: $prowlarrKey" "$prowlarrBase/api/v1/applications")
+      id=$(printf '%s' "$existing" | $jq -r --arg n "$impl" '([.[] | select(.name == $n)][0].id) // empty')
+      if [ -n "$id" ]; then
+        printf '%s' "$body" | $jq --argjson id "$id" '.id = $id' \
+          | $curl -fsS -X PUT -H "X-Api-Key: $prowlarrKey" -H 'Content-Type: application/json' --data @- "$prowlarrBase/api/v1/applications/$id" >/dev/null
+      else
+        printf '%s' "$body" \
+          | $curl -fsS -X POST -H "X-Api-Key: $prowlarrKey" -H 'Content-Type: application/json' --data @- "$prowlarrBase/api/v1/applications" >/dev/null
+      fi
+    }
+
+    # add a public indexer (by Prowlarr definition name) if missing. Prowlarr
+    # ships/updates its Cardigann definitions from indexers.prowlarr.com, so
+    # on a host that cannot reach it yet the definition may be missing; that
+    # is logged and skipped rather than failing the whole unit (the download
+    # client and application wiring above is what makes requests reach
+    # qBittorrent, and the indexer is retried on a later run/rebuild).
+    ensure_indexer() {
+      local definition=$1
+      local schema body profileId
+      if $curl -fsS -H "X-Api-Key: $prowlarrKey" "$prowlarrBase/api/v1/indexer" \
+        | $jq -e --arg d "$definition" 'any(.[]; .definitionName == $d)' >/dev/null; then
+        return 0
+      fi
+      schema=$($curl -fsS -H "X-Api-Key: $prowlarrKey" "$prowlarrBase/api/v1/indexer/schema")
+      if ! printf '%s' "$schema" | $jq -e --arg d "$definition" 'any(.[]; .definitionName == $d)' >/dev/null; then
+        echo "media-arr-init: no Prowlarr indexer definition named '$definition'" >&2
+        echo "media-arr-init: (indexer definitions not downloaded yet?); skipping" >&2
+        return 0
+      fi
+      profileId=$($curl -fsS -H "X-Api-Key: $prowlarrKey" "$prowlarrBase/api/v1/appprofile" | $jq -r '.[0].id')
+      body=$(printf '%s' "$schema" | $jq \
+        --arg d "$definition" \
+        --argjson profileId "$profileId" \
+        '([.[] | select(.definitionName == $d)][0])
+         | {
+             enable: true,
+             name: .name,
+             implementation: .implementation,
+             implementationName: .implementationName,
+             configContract: .configContract,
+             definitionName: .definitionName,
+             protocol: .protocol,
+             priority: .priority,
+             appProfileId: $profileId,
+             tags: [],
+             fields: [
+               { name: "definitionFile", value: .definitionName },
+               { name: "baseUrl", value: .indexerUrls[0] },
+               { name: "torrentBaseSettings.preferMagnetUrl", value: true }
+             ]
+           }')
+      printf '%s' "$body" \
+        | $curl -fsS -X POST -H "X-Api-Key: $prowlarrKey" -H 'Content-Type: application/json' --data @- "$prowlarrBase/api/v1/indexer" >/dev/null
+    }
+
+    run_flow() (
+      set -euo pipefail
+
+      sonarrKey=$(read_api_key ${config.services.sonarr.dataDir}/config.xml)
+      radarrKey=$(read_api_key ${config.services.radarr.dataDir}/config.xml)
+      prowlarrKey=$(read_api_key ${config.services.prowlarr.dataDir}/config.xml)
+
+      # every service must be answering before it is touched
+      $curl -fsS -H "X-Api-Key: $sonarrKey" "$sonarrBase/api/v3/system/status" >/dev/null
+      $curl -fsS -H "X-Api-Key: $radarrKey" "$radarrBase/api/v3/system/status" >/dev/null
+      $curl -fsS -H "X-Api-Key: $prowlarrKey" "$prowlarrBase/api/v1/system/status" >/dev/null
+      $curl -fsS -o /dev/null "http://127.0.0.1:${toString config.services.qbittorrent.webuiPort}/"
+
+      # qBittorrent is the download client; the category keeps Radarr/Sonarr
+      # downloads separate (qBittorrent creates it on first use)
+      ensure_download_client "$sonarrBase" "$sonarrKey" tvCategory sonarr
+      ensure_download_client "$radarrBase" "$radarrKey" movieCategory radarr
+
+      # Prowlarr pushes its indexers to these applications
+      ensure_application Sonarr "$sonarrKey" 8989
+      ensure_application Radarr "$radarrKey" 7878
+
+      for definition in ${lib.escapeShellArgs prowlarrIndexers}; do
+        ensure_indexer "$definition"
+      done
+
+      # sync the indexers to Sonarr/Radarr right away instead of waiting for
+      # Prowlarr's periodic sync
+      $curl -fsS -X POST -H "X-Api-Key: $prowlarrKey" -H 'Content-Type: application/json' \
+        -d '{"name":"ApplicationIndexerSync"}' "$prowlarrBase/api/v1/command" >/dev/null
+    )
+
+    # retry until a deadline: on a fresh boot the *arrs and Prowlarr may still
+    # be creating their databases (and Prowlarr may still be fetching indexer
+    # definitions); every step above is guarded/idempotent
+    deadline=$(( $($date +%s) + 900 ))
+    while true; do
+      run_flow
+      rc=$?
+      if [ "$rc" -eq 0 ]; then
+        $touch "$marker"
+        exit 0
+      fi
+      if [ "$( $date +%s )" -ge "$deadline" ]; then
+        echo "media-arr-init: giving up after 15 minutes" >&2
+        exit 1
+      fi
+      $sleep 5
+    done
+  '';
 in
 {
   users.groups.${mediaGroup} = { };
@@ -562,6 +809,33 @@ in
       Type = "oneshot";
       RemainAfterExit = true;
       ExecStart = "${seerrInit}";
+    };
+  };
+
+  # Declarative download-client/indexer wiring (see mediaArrInit above). This
+  # is what makes an approved Seerr request actually reach qBittorrent: it
+  # gives Sonarr/Radarr a qBittorrent download client and a Prowlarr-backed
+  # indexer. Runs on every boot (the marker file makes it a no-op after the
+  # first successful run) but only after the stack's services are up.
+  systemd.services.media-arr-init = {
+    description = "declaratively wire qBittorrent and Prowlarr into Sonarr/Radarr";
+    wantedBy = [ "multi-user.target" ];
+    after = [
+      "sonarr.service"
+      "radarr.service"
+      "prowlarr.service"
+      "qbittorrent.service"
+    ];
+    wants = [
+      "sonarr.service"
+      "radarr.service"
+      "prowlarr.service"
+      "qbittorrent.service"
+    ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${mediaArrInit}";
     };
   };
 

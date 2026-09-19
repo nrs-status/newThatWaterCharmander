@@ -284,6 +284,48 @@ pkgs.testers.runNixOSTest {
     assert any(f["path"] == "/srv/media/movies" for f in radarr_folders), radarr_folders
 
     # ---------------------------------------------------------------
+    # media-arr-init wired up the download chain declaratively: qBittorrent
+    # is the download client of both *arrs, Prowlarr knows both *arrs as
+    # applications and has a public indexer, which Prowlarr then pushed to
+    # the *arrs as a Torznab indexer. Without this an approved Seerr request
+    # was added to Radarr/Sonarr but never searched ("0 active indexers") and
+    # never reached qBittorrent/Jellyfin.
+    # ---------------------------------------------------------------
+    machine.wait_for_unit("media-arr-init.service", timeout=900)
+    assert service_ok("media-arr-init.service"), "media-arr-init not active"
+
+    for key, port, catfield, cat in [
+        (sonarr_key, 8989, "tvCategory", "sonarr"),
+        (radarr_key, 7878, "movieCategory", "radarr"),
+    ]:
+        clients = load(machine.succeed(
+            f"curl -sS -H 'X-Api-Key: {key}' "
+            f"http://127.0.0.1:{port}/api/v3/downloadclient"
+        ))
+        qb = [c for c in clients if c["implementation"] == "QBittorrent"]
+        assert len(qb) == 1, clients
+        assert qb[0]["enable"] is True, qb
+        fields = {f["name"]: f.get("value") for f in qb[0]["fields"]}
+        assert fields.get("host") == "127.0.0.1", fields
+        assert fields.get("port") == 8085, fields
+        assert fields.get(catfield) == cat, fields
+
+    prowlarr_key = machine.succeed(
+        "sed -n 's:.*<ApiKey>\\([^<]*\\)</ApiKey>.*:\\1:p' "
+        "/var/lib/prowlarr/config.xml | head -n1"
+    ).strip()
+    prowlarr_apps = load(machine.succeed(
+        f"curl -sS -H 'X-Api-Key: {prowlarr_key}' "
+        "http://127.0.0.1:9696/api/v1/applications"
+    ))
+    assert {a["name"] for a in prowlarr_apps} == {"Sonarr", "Radarr"}, prowlarr_apps
+    # (the public indexer(s) from `prowlarrIndexers` are also registered and
+    # pushed to the *arrs as Torznab indexers, but Prowlarr fetches its
+    # Cardigann definitions from indexers.prowlarr.com, which is not reachable
+    # from the offline test VM, so that part is not asserted here. It was
+    # verified against the real stack, where the definitions are present.)
+
+    # ---------------------------------------------------------------
     # persistence: reboot and confirm everything survives (on wranHearst
     # the root btrfs subvolume is wiped on every boot, so this is what the
     # /persist declarations are for)
@@ -320,6 +362,16 @@ pkgs.testers.runNixOSTest {
     byName2 = {v["Name"]: v["Locations"] for v in folders2}
     assert byName2.get("Series") == ["/srv/media/tv"], byName2
     assert byName2.get("Movies") == ["/srv/media/movies"], byName2
+
+    # the qBittorrent download client wiring survived the reboot (media-arr-init
+    # exits early via its persisted marker file, so this proves persistence)
+    machine.wait_for_unit("media-arr-init.service", timeout=900)
+    for key, port in [(sonarr_key, 8989), (radarr_key, 7878)]:
+        clients2 = load(machine.succeed(
+            f"curl -sS -H 'X-Api-Key: {key}' "
+            f"http://127.0.0.1:{port}/api/v3/downloadclient"
+        ))
+        assert any(c["implementation"] == "QBittorrent" for c in clients2), clients2
 
     # the Seerr Radarr/Sonarr integration survived the reboot (the bootstrap
     # unit exits early via its persisted marker file, so this proves the
