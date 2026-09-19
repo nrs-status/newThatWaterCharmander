@@ -66,10 +66,15 @@ let
     set -uo pipefail
 
     base=http://127.0.0.1:8096
-    # v2: this marker was bumped so that existing installs (whose libraries
-    # were created before media-jellyfin-init enabled realtime monitoring)
-    # run the script once more and pick up the new library options
-    marker=${config.services.jellyfin.configDir}/.nixos-media-users-created-v2
+    # v3: bumped again because enabling EnableRealtimeMonitor on an existing
+    # library is not enough on its own. Jellyfin (re)builds its filesystem
+    # watcher set when a library scan runs (and at startup), *not* when the
+    # library options are updated through the API, so after the v2 run the
+    # Series library still had no watcher and newly imported episodes stayed
+    # invisible until the 12h scheduled scan. The v3 run re-executes the
+    # script, which now also triggers a library scan (see the refresh at the
+    # end of run_flow) so the watcher is actually started.
+    marker=${config.services.jellyfin.configDir}/.nixos-media-users-created-v3
     curl=${lib.getExe pkgs.curl}
     jq=${lib.getExe pkgs.jq}
     sleep=${lib.getExe' pkgs.coreutils "sleep"}
@@ -149,6 +154,10 @@ let
       # scheduled library scan; existing libraries are updated in place,
       # because a rebuild has to fix installs whose libraries were created
       # before EnableRealtimeMonitor was set.
+      # Enabling the option is not sufficient by itself: Jellyfin only starts
+      # the matching file watchers during a library scan (or at startup), so
+      # run_flow triggers a scan after creating/updating the libraries (see
+      # below).
       folders=$($curl -fsS -H "$apiHeader" "$base/Library/VirtualFolders") || folders=""
       ensure_library() {
         local name=$1 collection=$2 path=$3
@@ -172,6 +181,16 @@ let
       }
       ensure_library Series tvshows "${mediaRoot}/tv"
       ensure_library Movies movies "${mediaRoot}/movies"
+
+      # Trigger a library scan now. Two reasons:
+      #   1. it indexes anything already present in the library (so media
+      #      imported before the first scheduled scan shows up immediately),
+      #   2. Jellyfin (re)creates its filesystem watchers during/after a scan,
+      #      which is what makes EnableRealtimeMonitor take effect. Changing
+      #      the library options through the API alone does not start a
+      #      watcher, which is exactly why existing installs kept missing
+      #      newly imported episodes.
+      $curl -fsS -X POST -H "$apiHeader" "$base/Library/Refresh" >/dev/null
     )
 
     # retry until a deadline (jellyfin keeps restarting while migrating on a

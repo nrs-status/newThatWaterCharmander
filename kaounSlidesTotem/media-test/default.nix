@@ -217,6 +217,59 @@ pkgs.testers.runNixOSTest {
     assert byName.get("Movies") == ["/srv/media/movies"], byName
 
     # ---------------------------------------------------------------
+    # A series that was imported but never scanned must end up in Jellyfin,
+    # and the Series path must end up watched for realtime updates.
+    #
+    # Setting EnableRealtimeMonitor on an existing library is not enough:
+    # Jellyfin only (re)builds its filesystem watcher set at startup or while
+    # a library scan runs, never when the options are changed through the
+    # API. This was the bug: the Series library kept no watcher, so a series
+    # Sonarr imported after the last scan stayed invisible until the 12h
+    # scheduled scan. media-jellyfin-init now triggers a scan, which starts
+    # the watchers and indexes what is already on disk.
+    #
+    # Reproduce that state: drop a real (valid) video into the Series
+    # library and re-run the marker-guarded init, exactly as the next
+    # rebuild/reboot does.
+    # ---------------------------------------------------------------
+    machine.succeed("mkdir -p '/srv/media/tv/Realtime Watcher Test/Season 01'")
+    machine.succeed(
+        "${pkgs.jellyfin-ffmpeg}/bin/ffmpeg -nostdin -loglevel error "
+        "-f lavfi -i color=c=black:s=128x72:d=1 -c:v libx264 -pix_fmt yuv420p "
+        "'/srv/media/tv/Realtime Watcher Test/Season 01/Realtime Watcher Test S01E01.mkv'"
+    )
+
+    machine.succeed("rm -f /var/lib/jellyfin/config/.nixos-media-users-created-v3")
+    machine.succeed("systemctl restart media-jellyfin-init.service")
+    machine.wait_for_unit("media-jellyfin-init.service", timeout=600)
+
+    # the scan the init triggered must have started the watcher on the
+    # Series path (this is what was missing and is what makes later imports
+    # appear without a manual scan)
+    machine.wait_until_succeeds(
+        "grep -Rqs 'Watching directory \"/srv/media/tv\"' /var/lib/jellyfin/log/",
+        timeout=300,
+    )
+
+    # ...and indexed the episode, so the series shows up in Jellyfin
+    def series_names():
+        items = load(machine.succeed(
+            f"curl -sS -H 'Authorization: MediaBrowser Token=\"{admin['AccessToken']}\"' "
+            "'http://127.0.0.1:8096/Items?Recursive=true&IncludeItemTypes=Series'"
+        ))
+        return [i.get("Name") or "" for i in items["Items"]]
+
+    for _ in range(90):
+        if any("realtime watcher test" in n.lower() for n in series_names()):
+            break
+        time.sleep(5)
+    else:
+        raise AssertionError(
+            "the imported series was not indexed by Jellyfin's scan: %r"
+            % series_names()
+        )
+
+    # ---------------------------------------------------------------
     # seerr is reachable and its declarative Radarr/Sonarr integration is
     # in place (media-seerr-init finished the setup wizard and registered
     # both *arrs; the *arrs have the root folders Seerr points at)
