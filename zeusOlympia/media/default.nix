@@ -31,6 +31,12 @@ let
   mediaRoot = "/srv/media";
   mediaGroup = "media";
 
+  # Jellyfin administrator created by media-jellyfin-init; the Seerr
+  # bootstrap signs in with the same account (it is the only Jellyfin admin
+  # at that point).
+  jellyfinAdminUser = "wranHearst";
+  jellyfinAdminPassword = "whmedia";
+
   # completes Jellyfin's first-boot setup wizard declaratively and creates
   # the two service accounts (see the comment on the unit below).
   # The whole flow is retried until a deadline: Jellyfin restarts internally
@@ -87,7 +93,7 @@ let
         $curl -fsS "$base/Startup/User" >/dev/null
         $curl -fsS -X POST "$base/Startup/User" \
           -H 'Content-Type: application/json' \
-          -d '{"Name":"wranHearst","Password":"whmedia"}'
+          -d '{"Name":"${jellyfinAdminUser}","Password":"${jellyfinAdminPassword}"}'
         $curl -fsS -X POST "$base/Startup/Complete"
         fresh=1
       fi
@@ -95,7 +101,7 @@ let
       # authenticate the admin account so we can manage users/libraries
       token=$($curl -fsS -X POST "$base/Users/AuthenticateByName" \
         -H "$authHeader" -H 'Content-Type: application/json' \
-        -d '{"Username":"wranHearst","Pw":"whmedia"}' | $jq -r '.AccessToken // empty') || token=""
+        -d '{"Username":"${jellyfinAdminUser}","Pw":"${jellyfinAdminPassword}"}' | $jq -r '.AccessToken // empty') || token=""
       if [ -z "$token" ]; then
         if [ "$fresh" = 1 ]; then
           echo "media-jellyfin-init: could not authenticate the just-created admin user" >&2
@@ -142,6 +148,233 @@ let
       fi
       if [ "$( $date +%s )" -ge "$deadline" ]; then
         echo "media-jellyfin-init: giving up after 10 minutes" >&2
+        exit 1
+      fi
+      $sleep 5
+    done
+  '';
+
+  # Declarative Seerr bootstrap. On first boot it:
+  #   1. waits for Sonarr/Radarr, reads their (self-generated) API keys from
+  #      their config.xml, makes sure the /srv/media/tv and /srv/media/movies
+  #      root folders exist and picks a quality profile,
+  #   2. signs in to Seerr with the Jellyfin admin account created by
+  #      media-jellyfin-init (the first login also creates Seerr's admin user
+  #      and configures the Jellyfin connection),
+  #   3. completes the Seerr setup wizard and registers the Sonarr and Radarr
+  #      instances so requests from the Seerr UI work immediately.
+  # Like media-jellyfin-init it is idempotent (every step checks state first)
+  # and guarded by a marker file in the persisted Seerr config dir, and it
+  # retries until a deadline because all three services may still be starting
+  # or migrating on a fresh boot.
+  seerrInit = pkgs.writeShellScript "media-seerr-init" ''
+    set -uo pipefail
+
+    seerrBase=http://127.0.0.1:5055
+    sonarrBase=http://127.0.0.1:8989
+    radarrBase=http://127.0.0.1:7878
+    marker=${config.services.seerr.configDir}/.nixos-media-seerr-configured
+
+    curl=${lib.getExe pkgs.curl}
+    jq=${lib.getExe pkgs.jq}
+    sleep=${lib.getExe' pkgs.coreutils "sleep"}
+    touch=${lib.getExe' pkgs.coreutils "touch"}
+    seq=${lib.getExe' pkgs.coreutils "seq"}
+    date=${lib.getExe' pkgs.coreutils "date"}
+    mktemp=${lib.getExe' pkgs.coreutils "mktemp"}
+    rm=${lib.getExe' pkgs.coreutils "rm"}
+    head=${lib.getExe' pkgs.coreutils "head"}
+    tail=${lib.getExe' pkgs.coreutils "tail"}
+    sed=${lib.getExe pkgs.gnused}
+
+    [ -f "$marker" ] && exit 0
+
+    # wait for a config.xml to appear and yield the *arr API key it contains
+    read_api_key() {
+      local file=$1 key
+      for _ in $($seq 1 300); do
+        if [ -f "$file" ]; then
+          key=$($sed -n 's:.*<ApiKey>\([^<]*\)</ApiKey>.*:\1:p' "$file" | $head -n1)
+          if [ -n "$key" ]; then
+            printf '%s' "$key"
+            return 0
+          fi
+        fi
+        $sleep 2
+      done
+      return 1
+    }
+
+    # create the *arr root folder if it is missing
+    ensure_root_folder() {
+      local base=$1 key=$2 path=$3 folders
+      folders=$($curl -fsS -H "X-Api-Key: $key" "$base/api/v3/rootfolder")
+      if ! printf '%s' "$folders" | $jq -e --arg p "$path" 'any(.[]; .path == $p)' >/dev/null; then
+        $jq -n --arg p "$path" '{path:$p}' \
+          | $curl -fsS -X POST -H "X-Api-Key: $key" -H 'Content-Type: application/json' --data @- "$base/api/v3/rootfolder" >/dev/null
+      fi
+    }
+
+    # print "<id>\t<name>" of the preferred quality profile (falls back to
+    # the first one when the usual names are absent)
+    pick_profile() {
+      local base=$1 key=$2
+      $curl -fsS -H "X-Api-Key: $key" "$base/api/v3/qualityprofile" \
+        | $jq -r '([.[] | select(.name == "HD-1080p")][0]) // ([.[] | select(.name == "Any")][0]) // .[0] | if . == null then empty else "\(.id)\t\(.name)" end'
+    }
+
+    # create or update the Seerr Sonarr/Radarr instance (so a partially
+    # finished run converges instead of duplicating the entry)
+    configure_dvr() {
+      local kind=$1 body=$2 existing id
+      existing=$($curl -fsS -b "$cookieJar" "$seerrBase/api/v1/settings/$kind")
+      id=$(printf '%s' "$existing" | $jq -r '.[0].id // empty')
+      if [ -z "$id" ]; then
+        printf '%s' "$body" | $curl -fsS -b "$cookieJar" -X POST -H 'Content-Type: application/json' --data @- "$seerrBase/api/v1/settings/$kind" >/dev/null
+      else
+        printf '%s' "$body" | $curl -fsS -b "$cookieJar" -X PUT -H 'Content-Type: application/json' --data @- "$seerrBase/api/v1/settings/$kind/$id" >/dev/null
+      fi
+    }
+
+    run_flow() (
+      set -euo pipefail
+
+      # ---- discover Sonarr/Radarr settings ---------------------------
+      sonarrKey=$(read_api_key ${config.services.sonarr.dataDir}/config.xml)
+      radarrKey=$(read_api_key ${config.services.radarr.dataDir}/config.xml)
+
+      $curl -fsS -H "X-Api-Key: $sonarrKey" "$sonarrBase/api/v3/system/status" >/dev/null
+      $curl -fsS -H "X-Api-Key: $radarrKey" "$radarrBase/api/v3/system/status" >/dev/null
+
+      ensure_root_folder "$sonarrBase" "$sonarrKey" "${mediaRoot}/tv"
+      ensure_root_folder "$radarrBase" "$radarrKey" "${mediaRoot}/movies"
+
+      IFS=$'\t' read -r sonarrProfileId sonarrProfileName < <(pick_profile "$sonarrBase" "$sonarrKey") || true
+      IFS=$'\t' read -r radarrProfileId radarrProfileName < <(pick_profile "$radarrBase" "$radarrKey") || true
+      if [ -z "$sonarrProfileId" ] || [ -z "$radarrProfileId" ]; then
+        echo "media-seerr-init: no quality profile found on Sonarr/Radarr" >&2
+        return 1
+      fi
+
+      # ---- sign in to Seerr (creates the admin on a fresh install) ----
+      cookieJar=$($mktemp)
+      trap '$rm -f "$cookieJar"' EXIT
+
+      initialized=$($curl -fsS "$seerrBase/api/v1/settings/public" | $jq -r '.initialized // false')
+      # On a fresh install the Jellyfin connection has to be supplied with
+      # the login (MediaServerType.NOT_CONFIGURED == 4); once configured,
+      # sending a hostname again is rejected with "Jellyfin hostname already
+      # configured", so only the credentials are sent then. This makes the
+      # login safe to retry after a partially finished run.
+      mediaServerType=$($curl -fsS "$seerrBase/api/v1/settings/public" | $jq -r '.mediaServerType // 4')
+      loginBody=$($jq -n \
+        --arg u "${jellyfinAdminUser}" \
+        --arg p "${jellyfinAdminPassword}" \
+        '{username:$u,password:$p,email:$u}')
+      if [ "$mediaServerType" = "4" ]; then
+        loginBody=$(printf '%s' "$loginBody" | $jq \
+          --arg h 127.0.0.1 \
+          --argjson port 8096 \
+          --argjson serverType 2 \
+          '. + {hostname:$h, port:$port, useSsl:false, urlBase:"", serverType:$serverType}')
+      fi
+      # log in and keep the session cookie; capture the HTTP status so a
+      # failure is retried (and logged) instead of silently continuing
+      loginResult=$(printf '%s' "$loginBody" \
+        | $curl -sS -w '\n%{http_code}' -c "$cookieJar" -X POST -H 'Content-Type: application/json' --data @- "$seerrBase/api/v1/auth/jellyfin")
+      loginCode=$(printf '%s' "$loginResult" | $tail -n1)
+      loginResponse=$(printf '%s' "$loginResult" | $sed '$d')
+      if [ "$loginCode" != "200" ]; then
+        echo "media-seerr-init: Seerr Jellyfin login returned HTTP $loginCode: $loginResponse" >&2
+        [ -f ${config.services.seerr.configDir}/logs/seerr.log ] && $tail -n 30 ${config.services.seerr.configDir}/logs/seerr.log >&2
+        return 1
+      fi
+      if [ "$initialized" != "true" ]; then
+        $curl -fsS -b "$cookieJar" -X POST "$seerrBase/api/v1/settings/initialize" >/dev/null
+      fi
+
+      # ---- register Sonarr + Radarr ----------------------------------
+      sonarrBody=$($jq -n \
+        --arg apiKey "$sonarrKey" \
+        --argjson activeProfileId "$sonarrProfileId" \
+        --arg activeProfileName "$sonarrProfileName" \
+        --arg activeDirectory "${mediaRoot}/tv" \
+        '{
+          name: "Sonarr",
+          hostname: "127.0.0.1",
+          port: 8989,
+          apiKey: $apiKey,
+          useSsl: false,
+          baseUrl: "",
+          activeProfileId: $activeProfileId,
+          activeProfileName: $activeProfileName,
+          activeDirectory: $activeDirectory,
+          is4k: false,
+          enableSeasonFolders: true,
+          isDefault: true,
+          externalUrl: "",
+          syncEnabled: true,
+          preventSearch: false,
+          tagRequests: false,
+          overrideRule: [],
+          tags: [],
+          animeTags: [],
+          seriesType: "standard",
+          monitorNewItems: "all"
+        }')
+
+      radarrBody=$($jq -n \
+        --arg apiKey "$radarrKey" \
+        --argjson activeProfileId "$radarrProfileId" \
+        --arg activeProfileName "$radarrProfileName" \
+        --arg activeDirectory "${mediaRoot}/movies" \
+        '{
+          name: "Radarr",
+          hostname: "127.0.0.1",
+          port: 7878,
+          apiKey: $apiKey,
+          useSsl: false,
+          baseUrl: "",
+          activeProfileId: $activeProfileId,
+          activeProfileName: $activeProfileName,
+          activeDirectory: $activeDirectory,
+          is4k: false,
+          isDefault: true,
+          minimumAvailability: "released",
+          externalUrl: "",
+          syncEnabled: true,
+          preventSearch: false,
+          tagRequests: false,
+          overrideRule: [],
+          tags: []
+        }')
+
+      configure_dvr sonarr "$sonarrBody"
+      configure_dvr radarr "$radarrBody"
+
+      # scan the existing libraries right away so already-present media is
+      # immediately marked available in the Seerr UI
+      $curl -fsS -b "$cookieJar" -X POST "$seerrBase/api/v1/settings/jobs/sonarr-scan" >/dev/null || true
+      $curl -fsS -b "$cookieJar" -X POST "$seerrBase/api/v1/settings/jobs/radarr-scan" >/dev/null || true
+    )
+
+    # retry until a deadline: on a fresh boot the *arrs and Seerr may still be
+    # creating their databases; every step above is guarded/idempotent
+    deadline=$(( $($date +%s) + 900 ))
+    while true; do
+      # NOTE: run_flow is deliberately *not* called from an `if`/`&&`/`||`
+      # condition: bash disables errexit for functions invoked that way, so
+      # a failing step in the middle of run_flow would be masked and the
+      # marker written even though Seerr was never configured. Calling it as
+      # a plain command keeps `set -e` effective inside the subshell.
+      run_flow
+      rc=$?
+      if [ "$rc" -eq 0 ]; then
+        $touch "$marker"
+        exit 0
+      fi
+      if [ "$( $date +%s )" -ge "$deadline" ]; then
+        echo "media-seerr-init: giving up after 15 minutes" >&2
         exit 1
       fi
       $sleep 5
@@ -301,6 +534,25 @@ in
     User = "seerr";
     Group = "seerr";
     StateDirectory = lib.mkForce "seerr";
+  };
+
+  # Declarative Radarr/Sonarr integration (see seerrInit above). Runs after
+  # the Jellyfin accounts/libraries exist, because the first Seerr login
+  # authenticates against Jellyfin. media-jellyfin-init is a oneshot, so
+  # ordering also waits for it to finish.
+  systemd.services.seerr.wants = [ "media-seerr-init.service" ];
+  systemd.services.media-seerr-init = {
+    description = "declaratively configure Seerr (Jellyfin login, Radarr/Sonarr)";
+    after = [
+      "seerr.service"
+      "media-jellyfin-init.service"
+    ];
+    wants = [ "media-jellyfin-init.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${seerrInit}";
+    };
   };
 
   # (see the impermanence block below for why this tmpfiles block is kept

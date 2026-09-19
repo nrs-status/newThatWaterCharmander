@@ -66,7 +66,11 @@ subscriptions.youtube_channels_as_tv_shows = {
 - adding/removing indexers in Prowlarr and giving out accounts
 
 (First-boot setup of Jellyfin — the wizard, the accounts and the
- Series/Movies libraries — happens automatically on first boot.)
+ Series/Movies libraries — happens automatically on first boot. The same is
+ true for Seerr: it signs itself in with the Jellyfin admin, registers
+ Sonarr and Radarr with their `/srv/media/tv` and `/srv/media/movies` root
+ folders and a quality profile, so requesting something on
+ http://wranHearst:5055 works right after the first boot.)
 
 ## Where the files live (read-only for you)
 

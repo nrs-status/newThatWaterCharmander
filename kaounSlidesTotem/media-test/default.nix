@@ -19,6 +19,11 @@
 #     administrator rights and sieyes does not
 #   - the declaratively registered Series/Movies libraries point at
 #     /srv/media/tv and /srv/media/movies
+#   - the Seerr bootstrap ran: Seerr is initialized, has an admin account and
+#     a Sonarr + Radarr instance pointing at /srv/media/tv and
+#     /srv/media/movies, and both *arrs really expose those root folders
+#   - all of the above survives the reboot (persisted Seerr/Sonarr/Radarr
+#     state)
 #
 # run with: nix build .#checks.x86_64-linux.media-vm-test
 {
@@ -177,10 +182,71 @@ pkgs.testers.runNixOSTest {
     assert byName.get("Movies") == ["/srv/media/movies"], byName
 
     # ---------------------------------------------------------------
-    # seerr is reachable
+    # seerr is reachable and its declarative Radarr/Sonarr integration is
+    # in place (media-seerr-init finished the setup wizard and registered
+    # both *arrs; the *arrs have the root folders Seerr points at)
     # ---------------------------------------------------------------
     machine.wait_for_open_port(5055, timeout=300)
     machine.succeed("curl -sf http://127.0.0.1:5055/ -o /dev/null")
+
+    machine.wait_for_unit("media-seerr-init.service", timeout=900)
+    assert service_ok("media-seerr-init.service"), "media-seerr-init not active"
+
+    public = load(machine.succeed("curl -sS http://127.0.0.1:5055/api/v1/settings/public"))
+    assert public.get("initialized") is True, public
+
+    def seerr_login():
+        # Seerr is already configured by media-seerr-init, so the Jellyfin
+        # hostname must not be sent again (only credentials).
+        for _ in range(60):
+            status, _out = machine.execute(
+                "curl -sS -f -c /tmp/seerr.cookies -X POST "
+                "-H 'Content-Type: application/json' "
+                "-d '{\"username\":\"wranHearst\",\"password\":\"whmedia\"}' "
+                "http://127.0.0.1:5055/api/v1/auth/jellyfin"
+            )
+            if status == 0:
+                return
+            time.sleep(5)
+        raise AssertionError("seerr login failed")
+
+    seerr_login()
+
+    sonarr = load(machine.succeed(
+        "curl -sS -b /tmp/seerr.cookies http://127.0.0.1:5055/api/v1/settings/sonarr"
+    ))
+    radarr = load(machine.succeed(
+        "curl -sS -b /tmp/seerr.cookies http://127.0.0.1:5055/api/v1/settings/radarr"
+    ))
+    print("SEERR SONARR:", sonarr)
+    print("SEERR RADARR:", radarr)
+    assert len(sonarr) == 1, sonarr
+    assert len(radarr) == 1, radarr
+    assert sonarr[0]["hostname"] == "127.0.0.1" and sonarr[0]["port"] == 8989
+    assert sonarr[0]["activeDirectory"] == "/srv/media/tv", sonarr
+    assert sonarr[0]["isDefault"] is True and sonarr[0]["apiKey"], sonarr
+    assert radarr[0]["hostname"] == "127.0.0.1" and radarr[0]["port"] == 7878
+    assert radarr[0]["activeDirectory"] == "/srv/media/movies", radarr
+    assert radarr[0]["isDefault"] is True and radarr[0]["apiKey"], radarr
+    assert radarr[0]["minimumAvailability"] == "released", radarr
+
+    # the *arrs really have the root folders Seerr points at
+    sonarr_key = machine.succeed(
+        "sed -n 's:.*<ApiKey>\\([^<]*\\)</ApiKey>.*:\\1:p' "
+        "/var/lib/sonarr/.config/NzbDrone/config.xml | head -n1"
+    ).strip()
+    radarr_key = machine.succeed(
+        "sed -n 's:.*<ApiKey>\\([^<]*\\)</ApiKey>.*:\\1:p' "
+        "/var/lib/radarr/.config/Radarr/config.xml | head -n1"
+    ).strip()
+    sonarr_folders = load(machine.succeed(
+        f"curl -sS -H 'X-Api-Key: {sonarr_key}' http://127.0.0.1:8989/api/v3/rootfolder"
+    ))
+    radarr_folders = load(machine.succeed(
+        f"curl -sS -H 'X-Api-Key: {radarr_key}' http://127.0.0.1:7878/api/v3/rootfolder"
+    ))
+    assert any(f["path"] == "/srv/media/tv" for f in sonarr_folders), sonarr_folders
+    assert any(f["path"] == "/srv/media/movies" for f in radarr_folders), radarr_folders
 
     # ---------------------------------------------------------------
     # persistence: reboot and confirm everything survives (on wranHearst
@@ -219,5 +285,21 @@ pkgs.testers.runNixOSTest {
     byName2 = {v["Name"]: v["Locations"] for v in folders2}
     assert byName2.get("Series") == ["/srv/media/tv"], byName2
     assert byName2.get("Movies") == ["/srv/media/movies"], byName2
+
+    # the Seerr Radarr/Sonarr integration survived the reboot (the bootstrap
+    # unit exits early via its persisted marker file, so this proves the
+    # configuration was persisted)
+    machine.wait_for_unit("media-seerr-init.service", timeout=900)
+    public2 = load(machine.succeed("curl -sS http://127.0.0.1:5055/api/v1/settings/public"))
+    assert public2.get("initialized") is True, public2
+    seerr_login()
+    sonarr2 = load(machine.succeed(
+        "curl -sS -b /tmp/seerr.cookies http://127.0.0.1:5055/api/v1/settings/sonarr"
+    ))
+    radarr2 = load(machine.succeed(
+        "curl -sS -b /tmp/seerr.cookies http://127.0.0.1:5055/api/v1/settings/radarr"
+    ))
+    assert len(sonarr2) == 1 and sonarr2[0]["activeDirectory"] == "/srv/media/tv", sonarr2
+    assert len(radarr2) == 1 and radarr2[0]["activeDirectory"] == "/srv/media/movies", radarr2
   '';
 }
