@@ -24,5 +24,7 @@
         EDITOR = "nvim";
       };
     };
+
+    services.userborn.enable = true;
   };
 }

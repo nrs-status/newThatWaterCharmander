@@ -390,7 +390,9 @@ in
   services.qbittorrent = {
     enable = true;
     group = mediaGroup;
-    webuiPort = 8080;
+    # 8080 is taken by k3s's traefik ingress ("Unable to bind ... address is
+    # already in use" in the journal); use a port nothing else claims
+    webuiPort = 8085;
     # accept the legal notice and keep everything under /srv/media
     serverConfig = {
       LegalNotice.Accepted = true;
