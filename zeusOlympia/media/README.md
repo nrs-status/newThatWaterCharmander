@@ -17,13 +17,20 @@ never need to touch it.
 ## Watching (Jellyfin)
 
 1. Open http://wranHearst:8096.
-2. Log in with your Jellyfin account (ask an admin to create one for you, or
-   use "Sign in with Jellyfin" in the Seerr/quick-connect flows). The
-   administrator account is `wranHearst`.
+2. Log in with your Jellyfin account:
+   - `wranHearst` (password `whmedia`) — the administrator account, or
+   - `sieyes` (password `sieyesmedia`) — a regular viewer account.
+
+   Both are created automatically on first boot by the media module (see
+   `zeusOlympia/media/default.nix`); use "Sign in with Jellyfin" in the
+   Seerr/quick-connect flows with the same credentials.
 3. Pick the **Series** library. Every managed show lives there — click an
    episode and press play. Subtitle and audio tracks are selectable in the
    player; playback works in the browser, in the official Jellyfin apps, and
    with any client that can stream from Jellyfin.
+
+(There is no manual first-boot wizard: the media module completes it and
+ registers the Series/Movies libraries automatically.)
 
 ## Requesting something that isn't there yet (Seerr)
 
@@ -56,9 +63,10 @@ subscriptions.youtube_channels_as_tv_shows = {
 ## Things only the admin does (not you)
 
 - running `sudo nixos-rebuild switch` after this module changes
-- first-boot setup of Jellyfin (wizard) and Seerr (connect Jellyfin/Sonarr/
-  Radarr)
 - adding/removing indexers in Prowlarr and giving out accounts
+
+(First-boot setup of Jellyfin — the wizard, the accounts and the
+ Series/Movies libraries — happens automatically on first boot.)
 
 ## Where the files live (read-only for you)
 

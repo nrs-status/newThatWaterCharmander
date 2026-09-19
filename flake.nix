@@ -51,6 +51,24 @@
         builtins.mapAttrs (_: mkNixosSystem specialArgs) hostModules
         // builtins.mapAttrs (_: mkNixosSystem (specialArgs // { inherit hostModules; })) vmModules;
 
+      # VM tests (see kaounSlidesTotem/*-test); e.g. run the media-stack test with
+      #   nix build .#checks.x86_64-linux.media-vm-test
+      checks.x86_64-linux =
+        let
+          testArgs = {
+            pkgsLib = inputs.nixpkgs.lib;
+            nixpkgsFlake = inputs.nixpkgs;
+            sopsFlake = inputs.sopsFlake;
+            impermanenceFlake = inputs.impermanenceFlake;
+          };
+        in
+        {
+          garage-vm-test = import ./kaounSlidesTotem/garage-test testArgs;
+          headscale-vm-test = import ./kaounSlidesTotem/headscale-test testArgs;
+          vaultwarden-vm-test = import ./kaounSlidesTotem/vaultwarden-test testArgs;
+          media-vm-test = import ./kaounSlidesTotem/media-test (builtins.removeAttrs testArgs [ "sopsFlake" ]);
+        };
+
       colmenaHive = inputs.colmenaFlake.lib.makeHive (
         {
           meta = {
