@@ -7,6 +7,7 @@
   ++ (with localModules; [
     forgejo
     garage
+    media
     harmonia
     openBao
     postgresql
