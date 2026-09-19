@@ -405,11 +405,12 @@ in
       Preferences.Downloads.SavePath = "${mediaRoot}/downloads";
       # WebUI login: wranHearst / whmedia (matches the Jellyfin admin)
       # Password_PBKDF2 = pbkdf2-hmac-sha512("whmedia", salt "zeusolympia-qbittorrent-webui", 100000 iters, 64 bytes)
-      # in qBittorrent's @ByteArray(base64(hash);base64(salt)) format (regenerate with
-      # https://codeberg.org/feathecutie/qbittorrent_password or any hashlib.pbkdf2_hmac call)
+      # qBittorrent stores the secret as base64(salt) + ":" + base64(hash); QSettings wraps
+      # that QByteArray as @ByteArray(...), i.e. @ByteArray(base64(salt):base64(hash)).
+      # (regenerate with https://codeberg.org/feathecutie/qbittorrent_password or any hashlib.pbkdf2_hmac call)
       Preferences.WebUI.Username = "wranHearst";
       Preferences.WebUI.Password_PBKDF2 =
-        "@ByteArray(GuDeJ35kVKubzYliy1Z15BR/rUXn926Wm6daTevxTNqu/ONwXOTgrQMARtjGWgC7Wsm8lnCB9frlWXsPZRpq0g==;emV1c29seW1waWEtcWJpdHRvcnJlbnQtd2VidWk=)";
+        "@ByteArray(emV1c29seW1waWEtcWJpdHRvcnJlbnQtd2VidWk=:GuDeJ35kVKubzYliy1Z15BR/rUXn926Wm6daTevxTNqu/ONwXOTgrQMARtjGWgC7Wsm8lnCB9frlWXsPZRpq0g==)";
     };
   };
   # make qBittorrent's downloaded files group-writable so Sonarr/Radarr can

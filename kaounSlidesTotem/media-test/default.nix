@@ -89,6 +89,41 @@ pkgs.testers.runNixOSTest {
     machine.succeed("systemctl cat ytdl-sub-youtube_tv.service")
 
     # ---------------------------------------------------------------
+    # qBittorrent WebUI credentials are applied declaratively
+    # (wranHearst / whmedia; the PBKDF2 secret must be stored in
+    # qBittorrent's @ByteArray(base64(salt):base64(hash)) order)
+    # ---------------------------------------------------------------
+    machine.wait_for_open_port(8085, timeout=300)
+
+    def qbittorrent_login():
+        # wrong credentials must be rejected (401 Unauthorized)
+        wrong = machine.succeed(
+            "curl -sS -w '\\n%{http_code}' -X POST "
+            "-H 'Referer: http://127.0.0.1:8085' "
+            "--data 'username=wranHearst&password=notwhmedia' "
+            "http://127.0.0.1:8085/api/v2/auth/login"
+        )
+        wrong_code = wrong.rsplit("\n", 1)[1].strip()
+        assert wrong_code == "401", f"wrong password was not rejected: {wrong!r}"
+
+        for _ in range(60):
+            status, out = machine.execute(
+                "curl -sS -w '\\n%{http_code}' -X POST "
+                "-H 'Referer: http://127.0.0.1:8085' "
+                "--data 'username=wranHearst&password=whmedia' "
+                "http://127.0.0.1:8085/api/v2/auth/login"
+            )
+            if status == 0:
+                body, code = out.rsplit("\n", 1)
+                # 204 on qBittorrent 5.2.x, 200 + "Ok." on older versions
+                if code in ("200", "204") and body.strip() in ("", "Ok."):
+                    return
+            time.sleep(5)
+        raise AssertionError(f"qbittorrent webui login failed: {out!r}")
+
+    qbittorrent_login()
+
+    # ---------------------------------------------------------------
     # impermanence: /srv/media + service state must be bind mounts from
     # /persist with the ownership previously ensured by tmpfiles
     # ---------------------------------------------------------------
