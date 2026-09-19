@@ -403,6 +403,13 @@ in
         TorrentContentLayout = "Original";
       };
       Preferences.Downloads.SavePath = "${mediaRoot}/downloads";
+      # WebUI login: wranHearst / whmedia (matches the Jellyfin admin)
+      # Password_PBKDF2 = pbkdf2-hmac-sha512("whmedia", salt "zeusolympia-qbittorrent-webui", 100000 iters, 64 bytes)
+      # in qBittorrent's @ByteArray(base64(hash);base64(salt)) format (regenerate with
+      # https://codeberg.org/feathecutie/qbittorrent_password or any hashlib.pbkdf2_hmac call)
+      Preferences.WebUI.Username = "wranHearst";
+      Preferences.WebUI.Password_PBKDF2 =
+        "@ByteArray(GuDeJ35kVKubzYliy1Z15BR/rUXn926Wm6daTevxTNqu/ONwXOTgrQMARtjGWgC7Wsm8lnCB9frlWXsPZRpq0g==;emV1c29seW1waWEtcWJpdHRvcnJlbnQtd2VidWk=)";
     };
   };
   # make qBittorrent's downloaded files group-writable so Sonarr/Radarr can
