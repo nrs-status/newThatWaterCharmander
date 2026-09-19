@@ -1,7 +1,0 @@
-You are on a NixOS system. If you need tools, write a flake.nix file and run a shell from it.
-
-The Seerr service configured over at ./zeusOlympia/media/ currently records on the graphical user interface that there has been an approved request for a movie. Nevertheless, this request is not appearing neither in the Qbittorrent web GUI or on Jellyfin. Figure out why that is and fix the issue. Test that your changes work.
-
-Once you are done: 
-- Create a file called SUMMARY.md containing a step-by-step summary of all steps you have undertaken.
-- As the last thing you do, send a `notify-send` notification containing an extremely short description of your task, notifying the user that you've completed your task. The message must include the `git` branch you are located in.
