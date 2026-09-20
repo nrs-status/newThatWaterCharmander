@@ -646,6 +646,91 @@ let
       $sleep 5
     done
   '';
+  # Heal Jellyfin's series -> seasons -> episodes tree.
+  #
+  # Jellyfin can end up with series whose child queries come back empty even
+  # though the Season/Episode items exist with correct ParentId/SeriesId
+  # links: on wranHearst *every* series answered /Shows/{id}/Seasons and
+  # /Shows/{id}/Episodes with {"Items":[],"TotalRecordCount":0} (the Series
+  # item even reported ChildCount=0 while RecursiveItemCount=30), so the web
+  # client's episode queueing found nothing to play and every series failed
+  # with "Playback error, unable to find valid media source to play" (movies
+  # kept working, since they need no tree). A plain library scan does NOT
+  # repair this - only a recursive refresh of the series item re-validates
+  # the child links and heals it (verified: after
+  # POST /Items/{id}/Refresh?Recursive=true the seasons/episodes queries
+  # return again, playback works, and a subsequent /Library/Refresh scan
+  # keeps the tree intact).
+  #
+  # This unit therefore runs on every boot after media-jellyfin-init and
+  # refreshes any series whose episode query is empty. It is a no-op while
+  # the tree is healthy (one cheap request per series).
+  jellyfinTreeHeal = pkgs.writeShellScript "media-jellyfin-tree-heal" ''
+    set -uo pipefail
+
+    base=http://127.0.0.1:8096
+    curl=${lib.getExe pkgs.curl}
+    jq=${lib.getExe pkgs.jq}
+    sleep=${lib.getExe' pkgs.coreutils "sleep"}
+    date=${lib.getExe' pkgs.coreutils "date"}
+    authHeader='Authorization: MediaBrowser Client="nixos-media", Device="nixos-media", DeviceId="nixos-media", Version="1.0"'
+
+    run_flow() (
+      set -euo pipefail
+
+      # the accounts are created by media-jellyfin-init (which this unit
+      # orders itself after), so authentication should succeed immediately.
+      # Authenticate exactly ONCE and take token and user id from the same
+      # response: Jellyfin invalidates the previous token when the same
+      # device authenticates again, so a second login would break the first
+      # token mid-run.
+      auth=$($curl -fsS -X POST "$base/Users/AuthenticateByName" \
+        -H "$authHeader" -H 'Content-Type: application/json' \
+        -d '{"Username":"${jellyfinAdminUser}","Pw":"${jellyfinAdminPassword}"}')
+      token=$(printf '%s' "$auth" | $jq -r '.AccessToken // empty')
+      userId=$(printf '%s' "$auth" | $jq -r '.User.Id // empty')
+      if [ -z "$token" ] || [ -z "$userId" ]; then
+        echo "media-jellyfin-tree-heal: could not authenticate" >&2
+        return 1
+      fi
+      apiHeader="Authorization: MediaBrowser Token=\"$token\""
+
+      healed=0
+      # list the series in one captured request: set -e does not abort on
+      # failures inside a for-word command substitution, so results must be
+      # checked explicitly (see the note on the seerrInit retry loop above)
+      seriesList=$($curl -fsS -H "$apiHeader" \
+          "$base/Items?IncludeItemTypes=Series&Recursive=true&Limit=200")
+      # the same query the web client performs while queueing a series
+      # playback; empty result => the tree is broken => heal it
+      for id in $(printf '%s' "$seriesList" | $jq -r '.Items[].Id'); do
+        resp=$($curl -fsS -H "$apiHeader" \
+          "$base/Shows/$id/Episodes?UserId=$userId&limit=1")
+        count=$(printf '%s' "$resp" | $jq -r '.TotalRecordCount // 0')
+        if [ "$count" = "0" ]; then
+          echo "media-jellyfin-tree-heal: series $id reports 0 episodes, healing"
+          $curl -fsS -X POST -H "$apiHeader" \
+            "$base/Items/$id/Refresh?Recursive=true&MetadataRefreshMode=ValidationOnly&ImageRefreshMode=None" \
+            >/dev/null
+          healed=$((healed + 1))
+        fi
+      done
+      echo "media-jellyfin-tree-heal: checked series, healed $healed"
+    )
+
+    # retry until a deadline (Jellyfin may still be initializing on boot)
+    deadline=$(( $($date +%s) + 600 ))
+    while true; do
+      if run_flow; then
+        exit 0
+      fi
+      if [ "$( $date +%s )" -ge "$deadline" ]; then
+        echo "media-jellyfin-tree-heal: giving up after 10 minutes" >&2
+        exit 1
+      fi
+      $sleep 5
+    done
+  '';
 in
 {
   users.groups.${mediaGroup} = { };
@@ -742,7 +827,10 @@ in
   # after the first successful run; if a pre-existing install rejects the
   # declarative admin password the unit just logs and exits 0 instead of
   # breaking Jellyfin on every boot.
-  systemd.services.jellyfin.wants = [ "media-jellyfin-init.service" ];
+  systemd.services.jellyfin.wants = [
+    "media-jellyfin-init.service"
+    "media-jellyfin-tree-heal.service"
+  ];
   systemd.services.media-jellyfin-init = {
     description = "declaratively set up Jellyfin users and libraries";
     after = [ "jellyfin.service" ];
@@ -754,6 +842,27 @@ in
     };
     # the writeShellScript-generated script is referenced as a store path
     serviceConfig.ExecStart = "${jellyfinInit}";
+  };
+
+  # ---------------------------------------------------------------------
+  # series tree healing (see the jellyfinTreeHeal comment above)
+  # ---------------------------------------------------------------------
+  systemd.services.media-jellyfin-tree-heal = {
+    description = "heal Jellyfin series whose seasons/episodes queries are empty";
+    after = [
+      "jellyfin.service"
+      "media-jellyfin-init.service"
+    ];
+    wants = [ "media-jellyfin-init.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      # stay "active (exited)" after a successful run so the unit visibly
+      # reflects the (healthy) tree state instead of dropping to inactive
+      RemainAfterExit = true;
+      User = config.services.jellyfin.user;
+      Group = config.services.jellyfin.group;
+      ExecStart = "${jellyfinTreeHeal}";
+    };
   };
 
   # ---------------------------------------------------------------------

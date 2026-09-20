@@ -270,6 +270,43 @@ pkgs.testers.runNixOSTest {
         )
 
     # ---------------------------------------------------------------
+    # the series -> seasons -> episodes tree must survive. Jellyfin can
+    # end up with series whose child queries (/Shows/{id}/Seasons,
+    # /Shows/{id}/Episodes) return empty even though the Season/Episode
+    # items exist with correct ParentId/SeriesId links; the web client
+    # then fails every series playback with "unable to find valid media
+    # source to play" (its episode queueing uses exactly that query).
+    # media-jellyfin-tree-heal detects the empty query and heals the
+    # series with a recursive refresh. Re-run the unit here (it also
+    # runs on every boot) and require the episode queue to be present.
+    # ---------------------------------------------------------------
+    machine.succeed("systemctl restart media-jellyfin-tree-heal.service")
+    machine.wait_for_unit("media-jellyfin-tree-heal.service", timeout=300)
+    machine.succeed("systemctl is-active media-jellyfin-tree-heal.service")
+
+    def series_episode_counts():
+        items = load(machine.succeed(
+            f"curl -sS -H 'Authorization: MediaBrowser Token=\"{admin['AccessToken']}\"' "
+            "'http://127.0.0.1:8096/Items?Recursive=true&IncludeItemTypes=Series'"
+        ))["Items"]
+        out = {}
+        for s in items:
+            res = load(machine.succeed(
+                f"curl -sS -H 'Authorization: MediaBrowser Token=\"{admin['AccessToken']}\"' "
+                f"'http://127.0.0.1:8096/Shows/{s['Id']}/Episodes'"
+            ))
+            out[s["Name"]] = len(res.get("Items", []))
+        return out
+
+    counts = series_episode_counts()
+    print("SERIES EPISODE COUNTS:", counts)
+    empty = {n: c for n, c in counts.items() if c == 0}
+    assert not empty, (
+        "series with a broken seasons/episodes tree after "
+        "media-jellyfin-tree-heal: %r" % empty
+    )
+
+    # ---------------------------------------------------------------
     # seerr is reachable and its declarative Radarr/Sonarr integration is
     # in place (media-seerr-init finished the setup wizard and registered
     # both *arrs; the *arrs have the root folders Seerr points at)
