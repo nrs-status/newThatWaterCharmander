@@ -895,7 +895,7 @@ in
       overrides.tv_show_directory = "${mediaRoot}/tv";
     };
     subscriptions.youtube_channels_as_tv_shows = {
-      # "Channel Name" = "https://www.youtube.com/@ExampleChannel";
+      "ThePrimeTimeagen" = "https://www.youtube.com/@ThePrimeTimeagen";
     };
   };
   # keep downloaded files group-writable like the rest of the stack
