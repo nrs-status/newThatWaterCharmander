@@ -18,6 +18,15 @@ let
 in
 {
   options.kubernetes = {
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Whether to enable the Kubernetes (k3s) cluster node on this host.
+        Set to `false` to disable the module entirely, even when imported.
+      '';
+    };
+
     role = lib.mkOption {
       type = lib.types.enum [
         "control"
@@ -73,7 +82,7 @@ in
     };
   };
 
-  config = {
+  config = lib.mkIf cfg.enable {
     services.k3s = {
       enable = true;
       role = if cfg.role == "control" then "server" else "agent";
