@@ -56,10 +56,10 @@ in
     initrd.systemd.enable = true; # required by boot.initrd.systemd.services.rollback in ./impermanence.nix
   };
 
-  services.journald.extraConfig = ''
-    Storage=persistent
-    SystemMaxUse=1G
-  '';
+  services.journald.settings.Journal = {
+    Storage = "persistent";
+    SystemMaxUse = "1G";
+  };
 
   # runs as early as possible in stage 2, before anything that could plausibly
   # fail (networking, sshd, display manager...)
