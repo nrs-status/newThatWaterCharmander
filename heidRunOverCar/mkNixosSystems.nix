@@ -1,9 +1,9 @@
-{ nixpkgs, ... }:
+{ nixosSystemFn, ... }:
 { hostModules, vmModules, specialArgs, ... }:
 let
   mkNixosSystem =
     specialargs: x:
-    nixpkgs.lib.nixosSystem {
+    nixosSystemFn.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [ x ];
       specialArgs = specialargs;
