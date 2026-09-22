@@ -1,4 +1,4 @@
-{ pkgs, pkgsLib, frontArmToPlane, devShellCommand ? "nix develop frontArmToPlane#sieyes" }:
+{ pkgs, pkgsLib, wrappedPkgs, devShellCommand ? "nix develop frontArmToPlane#sieyes" }:
 pkgs.writeShellApplication {
   name = "setupWorkspaces";
   # `devShellCommand` is passed by swayDecl.nix: the shellCacher launcher's
@@ -25,7 +25,7 @@ pkgs.writeShellApplication {
 
     #setup workspace 1 and 2
 
-    swaymsg "workspace 1; exec ${pkgsLib.getExe frontArmToPlane.packages.x86_64-linux.firefox}"
-    swaymsg "workspace 2; exec ${pkgsLib.getExe pkgs.kitty} ${devShellCommand}"
+    swaymsg "workspace 1; exec ${pkgsLib.getExe wrappedPkgs.firefox}"
+    swaymsg "workspace 2; exec ${pkgsLib.getExe wrappedPkgs.kitty} ${devShellCommand}"
   '';
 }

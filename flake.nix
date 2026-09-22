@@ -7,6 +7,7 @@
     impermanenceFlake.url = "github:nix-community/impermanence";
     peachRampSkateboard.url = "github:nrs-status/newPeachRampSkateboard";
     frontArmToPlane.url = "github:nrs-status/newFrontArmToPlane";
+    nasExitGiScorp.url = "github:nrs-status/nasExitGiScorp";
     colmenaFlake.url = "github:zhaofengli/colmena";
     direnv-instant.url = "github:Mic92/direnv-instant";
   };
@@ -24,8 +25,10 @@
         # makeColmenaHiveFn = inputs.colmenaFlake.lib.makeHive;
         # nixpkgsFlake = inputs.nixpkgs;
       };
+      newPkgs = inputs.nasExitGiScorp.packages.x86_64-linux;
+    wrappedPkgs = inputs.frontArmToPlane.packages.x86_64-linux;
       specialArgs = {
-        inherit pkgsLib baseLib localLib;
+        inherit pkgsLib baseLib localLib newPkgs wrappedPkgs;
         frontArmToPlane = inputs.frontArmToPlane; # for adding to the registry and specifying the default shell in sway
         peachRampSkateboard = inputs.peachRampSkateboard; # for adding to the registry
         sopsFlake = inputs.sopsFlake;
@@ -37,20 +40,9 @@
       hostModules = import ./empTriageCan { inherit baseLib; };
       vmModules = import ./freezCrawlTaco { inherit baseLib; };
 
-      mkNixosSystem =
-        specialargs: x:
-        inputs.nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [ x ];
-          specialArgs = specialargs;
-        };
-
     in
     {
-      nixosConfigurations =
-        builtins.mapAttrs (_: mkNixosSystem specialArgs) hostModules
-        // builtins.mapAttrs (_: mkNixosSystem (specialArgs // { inherit hostModules; })) vmModules;
-
+      nixosConfigurations = localLib.mkNixosSystems { inherit hostModules vmModules specialArgs };
       # VM tests (see kaounSlidesTotem/*-test); e.g. run the media-stack test with
       #   nix build .#checks.x86_64-linux.media-vm-test
       checks.x86_64-linux =
@@ -66,7 +58,9 @@
           garage-vm-test = import ./kaounSlidesTotem/garage-test testArgs;
           headscale-vm-test = import ./kaounSlidesTotem/headscale-test testArgs;
           vaultwarden-vm-test = import ./kaounSlidesTotem/vaultwarden-test testArgs;
-          media-vm-test = import ./kaounSlidesTotem/media-test (builtins.removeAttrs testArgs [ "sopsFlake" ]);
+          media-vm-test = import ./kaounSlidesTotem/media-test (
+            builtins.removeAttrs testArgs [ "sopsFlake" ]
+          );
         };
 
       colmenaHive = inputs.colmenaFlake.lib.makeHive (

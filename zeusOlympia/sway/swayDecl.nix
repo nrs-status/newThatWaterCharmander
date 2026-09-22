@@ -1,5 +1,6 @@
 {
-  frontArmToPlane,
+  newPkgs,
+  wrappedPkgs,
   waybarCommand,
   pkgs,
   pkgsLib,
@@ -138,7 +139,7 @@ in
       {
         command = "${pkgsLib.getExe (
           import ./setupWorkspaces.nix {
-            inherit pkgs pkgsLib frontArmToPlane;
+            inherit pkgs pkgsLib wrappedPkgs;
             devShellCommand = devShellCommand;
           }
         )}";
@@ -177,8 +178,8 @@ in
   # the command on every keyboard-repeat event while rightalt (-> F13) is held,
   # so the voice transcriber fires repeatedly instead of only once on press.
   extraConfig = ''
-    bindcode --no-repeat 191 exec --no-startup-id ${pkgsLib.getExe frontArmToPlane.packages.x86_64-linux.voice-input} start
-    bindcode --no-repeat --release 191 exec --no-startup-id ${pkgsLib.getExe frontArmToPlane.packages.x86_64-linux.voice-input} finish
+    bindcode --no-repeat 191 exec --no-startup-id ${pkgsLib.getExe newPkgs.voice-input} start
+    bindcode --no-repeat --release 191 exec --no-startup-id ${pkgsLib.getExe newPkgs.voice-input} finish
 
     ### keyboard-binding modes ################################################
     # The keybindings above (the `keybindings` set, plus the raw-keycode
