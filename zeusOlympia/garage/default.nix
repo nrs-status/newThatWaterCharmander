@@ -93,6 +93,15 @@ in
   # node a role (and commit the layout) on first start so the cluster is
   # usable immediately. garage layout show stays unassigned until the layout
   # is applied, which makes this check idempotent.
+  #
+  # the service runs without root privileges:
+  #   - DynamicUser=true gives it an ephemeral unprivileged identity (it only
+  #     needs to talk to the garage daemon over its tcp ports, not to any
+  #     state directory)
+  #   - the sops-rendered environment file is root-owned with mode 0400, so
+  #     the script cannot read it directly; systemd (which runs as root)
+  #     instead loads it as a unit credential and exposes it read-only under
+  #     $CREDENTIALS_DIRECTORY, from where the script sources it
   systemd.services.garage-layout = {
     description = "assign the garage node a single-node cluster layout";
     after = [ "garage.service" ];
@@ -105,14 +114,27 @@ in
       gawk
       coreutils
     ];
+    serviceConfig = {
+      DynamicUser = true;
+      # share the daemon's StateDirectory: systemd gives units with
+      # DynamicUser=true that declare the same StateDirectory the same
+      # dynamic uid, so the CLI can read the node key from the metadata
+      # directory (garage RPC requires signing with that key; the CLI only
+      # reads it, all cluster access is via the daemon's tcp ports)
+      StateDirectory = "garage";
+      LoadCredential = [
+        "garage-env:${config.sops.templates."garage-env".path}"
+      ];
+    };
     script = ''
       # the raw garage binary is used here (not the `garage` wrapper from
       # environment.systemPackages), so the rpc secret has to be sourced
-      # explicitly from the sops-rendered environment file (with set -a so
-      # the variables are exported to the garage child process), otherwise
+      # explicitly from the sops-rendered environment file (exposed to this
+      # unprivileged service as a systemd credential; with set -a so the
+      # variables are exported to the garage child process), otherwise
       # the CLI fails with "No RPC secret provided"
       set -a
-      . ${config.sops.templates."garage-env".path}
+      . "$CREDENTIALS_DIRECTORY/garage-env"
       set +a
       # wait for the (public) garage health endpoint to come up
       for _ in $(seq 1 30); do
