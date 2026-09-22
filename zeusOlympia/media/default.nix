@@ -896,6 +896,8 @@ in
     };
     subscriptions.youtube_channels_as_tv_shows = {
       "ThePrimeTimeagen" = "https://www.youtube.com/@ThePrimeTimeagen";
+      "Pezle" = "https://www.youtube.com/@Pezle/videos";
+      "Mr. Beat" = "https://www.youtube.com/@iammrbeat";
     };
   };
   # keep downloaded files group-writable like the rest of the stack
