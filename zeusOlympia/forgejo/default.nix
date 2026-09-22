@@ -62,7 +62,13 @@ in
   };
 
   # generate a random password file per account on first boot; skipped on
-  # subsequent boots (ConditionPathExists) so passwords stay stable
+  # subsequent boots (ConditionPathExists) so passwords stay stable.
+  # unprivileged: it runs as the forgejo user, not root - the forgejo module's
+  # tmpfiles rules create cfg.stateDir (0750, owned by cfg.user:cfg.group)
+  # before any multi-user.target unit, so this unit can create the password
+  # dir itself and the generated files are already forgejo-owned; the
+  # previous root-run variant's trailing chown is therefore unnecessary
+  # (and would fail) here
   systemd.services.forgejo-user-passwords = {
     description = "generate random passwords for the forgejo accounts";
     wantedBy = [ "multi-user.target" ];
@@ -71,13 +77,14 @@ in
     serviceConfig = {
       Type = "oneshot";
       UMask = "0077";
+      User = cfg.user;
+      Group = cfg.group;
     };
     script = ''
       mkdir -p ${passwordDir}
       for user in ${adminUser} ${lib.concatStringsSep " " normalUsers}; do
         ${pkgs.openssl}/bin/openssl rand -base64 24 | tr -d '\n' > ${passwordDir}/$user
       done
-      chown -R ${cfg.user}:${cfg.group} ${passwordDir}
     '';
   };
 

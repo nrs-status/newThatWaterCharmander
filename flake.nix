@@ -63,6 +63,9 @@
           garage-vm-test = import ./kaounSlidesTotem/garage-test testArgs;
           headscale-vm-test = import ./kaounSlidesTotem/headscale-test testArgs;
           vaultwarden-vm-test = import ./kaounSlidesTotem/vaultwarden-test testArgs;
+          forgejo-vm-test = import ./kaounSlidesTotem/forgejo-test (
+            builtins.removeAttrs testArgs [ "sopsFlake" ]
+          );
           media-vm-test = import ./kaounSlidesTotem/media-test (
             builtins.removeAttrs testArgs [ "sopsFlake" ]
           );
