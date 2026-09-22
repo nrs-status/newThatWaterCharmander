@@ -37,6 +37,15 @@ let
   mediaRoot = "/srv/media";
   mediaGroup = "media";
 
+  # Unprivileged account used by the bootstrapping oneshots (media-seerr-init,
+  # media-arr-init). They only need to read the self-generated *arr API keys
+  # and talk HTTP to services on localhost, so they must never run as root.
+  # Its primary group is the shared `media` group, which is what lets it read
+  # Sonarr's group-readable config; Radarr's data dir is relaxed to group
+  # readable below for the same reason.
+  mediaInitUser = "media-init";
+  mediaInitStateDir = "/var/lib/media-init";
+
   # Jellyfin administrator created by media-jellyfin-init; the Seerr
   # bootstrap signs in with the same account (it is the only Jellyfin admin
   # at that point).
@@ -228,7 +237,7 @@ let
     seerrBase=http://127.0.0.1:5055
     sonarrBase=http://127.0.0.1:8989
     radarrBase=http://127.0.0.1:7878
-    marker=${config.services.seerr.configDir}/.nixos-media-seerr-configured
+    marker=${mediaInitStateDir}/.nixos-media-seerr-configured
 
     curl=${lib.getExe pkgs.curl}
     jq=${lib.getExe pkgs.jq}
@@ -460,7 +469,7 @@ let
     sonarrBase=http://127.0.0.1:8989
     radarrBase=http://127.0.0.1:7878
     prowlarrBase=http://127.0.0.1:9696
-    marker=${config.services.sonarr.dataDir}/.nixos-media-arr-configured
+    marker=${mediaInitStateDir}/.nixos-media-arr-configured
 
     curl=${lib.getExe pkgs.curl}
     jq=${lib.getExe pkgs.jq}
@@ -735,6 +744,14 @@ in
 {
   users.groups.${mediaGroup} = { };
 
+  # Unprivileged owner of the bootstrap marker files (see mediaInitUser above).
+  # Being in the `media` group is enough to read the Sonarr/Radarr/Prowlarr
+  # API keys without ever running as root.
+  users.users.${mediaInitUser} = {
+    isSystemUser = true;
+    group = mediaGroup;
+  };
+
   # ---------------------------------------------------------------------
   # qBittorrent (qbittorrent-nix): headless torrent client
   # ---------------------------------------------------------------------
@@ -803,6 +820,13 @@ in
     group = mediaGroup;
   };
   systemd.services.radarr.serviceConfig.UMask = lib.mkForce "0002";
+  # The radarr module creates its data dir mode 0700 (API key protection). The
+  # unprivileged media-init bootstrap has to read Radarr's self-generated API
+  # key to wire up the download chain, so relax it to 0750 radarr:media — the
+  # same group the rest of the stack already shares (Sonarr's config dir is
+  # group readable in the same way). No service ever needs root for this.
+  systemd.tmpfiles.settings."10-radarr".${config.services.radarr.dataDir}.d.mode =
+    lib.mkForce "0750";
 
   # ---------------------------------------------------------------------
   # Jellyfin: media server
@@ -878,6 +902,7 @@ in
   # To add a channel, add an entry under subscriptions below and rebuild:
   #   subscriptions.youtube_channels_as_tv_shows."Channel Name" =
   #     "https://www.youtube.com/@ExampleChannel";
+  services.ytdl-sub.user = "ytdl-sub"; # explicit: never root
   services.ytdl-sub.group = mediaGroup; # primary group "media": everything
   # ytdl-sub writes into the TV library is automatically owned by the
   # media group, like the rest of the stack
@@ -938,6 +963,9 @@ in
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      User = mediaInitUser;
+      Group = mediaGroup;
+      StateDirectory = "media-init";
       ExecStart = "${seerrInit}";
     };
   };
@@ -965,6 +993,9 @@ in
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      User = mediaInitUser;
+      Group = mediaGroup;
+      StateDirectory = "media-init";
       ExecStart = "${mediaArrInit}";
     };
   };
@@ -1055,6 +1086,9 @@ in
       # /var/lib/seerr for stateVersion >= 26.05 (26.11 on wranHearst), so
       # that single directory is all of its state
       "/var/lib/seerr"
+      # media-init: marker files for media-seerr-init / media-arr-init, owned
+      # by the unprivileged bootstrap user (StateDirectory=media-init)
+      (d mediaInitStateDir mediaInitUser mediaGroup "0755")
       # ytdl-sub instances: StateDirectory=ytdl-sub/<instance> (download
       # state, subscription caches); the instance unit is
       # ytdl-sub-youtube_tv

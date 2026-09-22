@@ -89,6 +89,34 @@ pkgs.testers.runNixOSTest {
     machine.succeed("systemctl cat ytdl-sub-youtube_tv.service")
 
     # ---------------------------------------------------------------
+    # no service of the stack may run with root privileges — not even the
+    # one-shot bootstraps (media-seerr-init / media-arr-init), which run as
+    # the dedicated unprivileged `media-init` user and read the *arr API keys
+    # through the shared media group instead of as root.
+    # ---------------------------------------------------------------
+    for unit in [
+        "qbittorrent.service",
+        "prowlarr.service",
+        "sonarr.service",
+        "radarr.service",
+        "jellyfin.service",
+        "seerr.service",
+        "ytdl-sub-youtube_tv.service",
+        "media-jellyfin-init.service",
+        "media-jellyfin-tree-heal.service",
+        "media-seerr-init.service",
+        "media-arr-init.service",
+    ]:
+        user = machine.succeed(f"systemctl show -p User --value {unit}").strip()
+        assert user not in ("", "root"), f"{unit} runs as root ({user!r})"
+
+    # ytdl-sub explicitly runs as its own unprivileged user
+    assert (
+        machine.succeed("systemctl show -p User --value ytdl-sub-youtube_tv.service").strip()
+        == "ytdl-sub"
+    )
+
+    # ---------------------------------------------------------------
     # qBittorrent WebUI credentials are applied declaratively
     # (wranHearst / whmedia; the PBKDF2 secret must be stored in
     # qBittorrent's @ByteArray(base64(salt):base64(hash)) order)
@@ -136,6 +164,7 @@ pkgs.testers.runNixOSTest {
         "/var/lib/prowlarr",
         "/var/lib/jellyfin",
         "/var/lib/ytdl-sub",
+        "/var/lib/media-init",
     ]:
         assert path in mounts, f"{path} is not a (bind) mount: {mounts}"
 
@@ -307,6 +336,30 @@ pkgs.testers.runNixOSTest {
     )
 
     # ---------------------------------------------------------------
+    # playback, end to end: Jellyfin (unprivileged, only in the media group)
+    # must actually read the file off disk and serve it — indexing it is not
+    # enough. This is the user-facing "press play" path.
+    # ---------------------------------------------------------------
+    episodes = load(machine.succeed(
+        f"curl -sS -H 'Authorization: MediaBrowser Token=\"{admin['AccessToken']}\"' "
+        "'http://127.0.0.1:8096/Items?Recursive=true&IncludeItemTypes=Episode'"
+    ))["Items"]
+    e2e_eps = [
+        e for e in episodes
+        if "realtime watcher test" in (e.get("SeriesName") or "").lower()
+    ]
+    assert e2e_eps, [e.get("SeriesName") for e in episodes]
+    e2e_id = e2e_eps[0]["Id"]
+    served = machine.succeed(
+        f"curl -sS -o /dev/null -w '%{{http_code}} %{{size_download}}' "
+        f"-r 0-1023 -H 'Authorization: MediaBrowser Token=\"{admin['AccessToken']}\"' "
+        f"'http://127.0.0.1:8096/Videos/{e2e_id}/stream?static=true&api_key={admin['AccessToken']}'"
+    ).strip()
+    served_code, served_bytes = served.split()
+    assert served_code in ("200", "206"), f"jellyfin could not serve the file: {served!r}"
+    assert int(served_bytes) > 0, f"jellyfin served an empty file: {served!r}"
+
+    # ---------------------------------------------------------------
     # seerr is reachable and its declarative Radarr/Sonarr integration is
     # in place (media-seerr-init finished the setup wizard and registered
     # both *arrs; the *arrs have the root folders Seerr points at)
@@ -414,6 +467,89 @@ pkgs.testers.runNixOSTest {
     # Cardigann definitions from indexers.prowlarr.com, which is not reachable
     # from the offline test VM, so that part is not asserted here. It was
     # verified against the real stack, where the definitions are present.)
+
+    # ---------------------------------------------------------------
+    # the stored wiring must actually *work*, not merely exist: the *arrs
+    # have to reach qBittorrent with the configured credentials, and Prowlarr
+    # has to reach both *arrs. A client that is stored but unreachable is
+    # exactly the kind of curb an over-restrictive unprivileged setup could
+    # introduce, and the config-inspection checks above would not catch it.
+    # ---------------------------------------------------------------
+    for key, port in [(sonarr_key, 8989), (radarr_key, 7878)]:
+        results = load(machine.succeed(
+            f"curl -sS -X POST -H 'X-Api-Key: {key}' "
+            f"-H 'Content-Type: application/json' -d '{{}}' "
+            f"http://127.0.0.1:{port}/api/v3/downloadclient/testall"
+        ))
+        assert results and all(r["isValid"] for r in results), (port, results)
+
+    app_tests = load(machine.succeed(
+        f"curl -sS -X POST -H 'X-Api-Key: {prowlarr_key}' "
+        "-H 'Content-Type: application/json' -d '{}' "
+        "http://127.0.0.1:9696/api/v1/applications/testall"
+    ))
+    assert app_tests and all(r["isValid"] for r in app_tests), app_tests
+
+    # ---------------------------------------------------------------
+    # END-TO-END PERMISSIONS: prove every unprivileged service can do its
+    # real job on the shared /srv/media tree. The checks above only prove the
+    # units are up and wired; a wrong owner/group/UMask would still let them
+    # start. This is what actually guarantees the stack is usable with no
+    # root anywhere in the loop.
+    # ---------------------------------------------------------------
+    # qbittorrent downloads (umask 0002, like the real unit) ...
+    machine.succeed(
+        "runuser -u qbittorrent -- sh -c "
+        "'umask 0002; printf download > /srv/media/downloads/.e2e-dl'"
+    )
+    # ... sonarr imports it into the TV library (a move: needs group write on
+    # the download file and on the target directory) ...
+    machine.succeed(
+        "runuser -u sonarr -- sh -c "
+        "'umask 0002; mv /srv/media/downloads/.e2e-dl /srv/media/tv/.e2e-dl'"
+    )
+    # ... and jellyfin reads what sonarr wrote
+    machine.succeed("runuser -u jellyfin -- cat /srv/media/tv/.e2e-dl >/dev/null")
+
+    # the same chain for movies (qbittorrent -> radarr -> jellyfin)
+    machine.succeed(
+        "runuser -u qbittorrent -- sh -c "
+        "'umask 0002; printf download > /srv/media/downloads/.e2e-dl2'"
+    )
+    machine.succeed(
+        "runuser -u radarr -- sh -c "
+        "'umask 0002; mv /srv/media/downloads/.e2e-dl2 /srv/media/movies/.e2e-dl2'"
+    )
+    machine.succeed("runuser -u jellyfin -- cat /srv/media/movies/.e2e-dl2 >/dev/null")
+
+    # ytdl-sub writes straight into the TV library
+    machine.succeed(
+        "runuser -u ytdl-sub -- sh -c 'umask 0002; printf yt > /srv/media/tv/.e2e-ytdl'"
+    )
+    machine.succeed("runuser -u jellyfin -- cat /srv/media/tv/.e2e-ytdl >/dev/null")
+
+    # the unprivileged bootstrap can read the *arr API keys (the reason it
+    # used to need root) and owns its marker directory
+    for keyfile in [
+        "/var/lib/sonarr/.config/NzbDrone/config.xml",
+        "/var/lib/radarr/.config/Radarr/config.xml",
+        "/var/lib/prowlarr/config.xml",
+    ]:
+        machine.succeed(f"runuser -u media-init -- cat {keyfile} >/dev/null")
+    machine.succeed("runuser -u media-init -- sh -c 'touch /var/lib/media-init/.e2e-marker'")
+
+    # both bootstraps really used the new, unprivileged marker location
+    for marker in [
+        ".nixos-media-seerr-configured",
+        ".nixos-media-arr-configured",
+    ]:
+        machine.succeed(f"test -f /var/lib/media-init/{marker}")
+
+    machine.succeed(
+        "rm -f /srv/media/downloads/.e2e-dl /srv/media/downloads/.e2e-dl2 "
+        "/srv/media/tv/.e2e-dl /srv/media/tv/.e2e-ytdl "
+        "/srv/media/movies/.e2e-dl2 /var/lib/media-init/.e2e-marker"
+    )
 
     # ---------------------------------------------------------------
     # persistence: reboot and confirm everything survives (on wranHearst
