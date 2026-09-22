@@ -3,7 +3,7 @@
 let
   mkNixosSystem =
     specialargs: x:
-    nixosSystemFn.lib.nixosSystem {
+    nixosSystemFn {
       system = "x86_64-linux";
       modules = [ x ];
       specialArgs = specialargs;
