@@ -216,11 +216,11 @@
         "peachRampSkateboard": "peachRampSkateboard_10"
       },
       "locked": {
-        "lastModified": 1790165944,
-        "narHash": "sha256-B5e0CI8qR3DJZFrsDPDTxner2CGQFRFbimv4VHl8Jlc=",
+        "lastModified": 1790171798,
+        "narHash": "sha256-34qq1X5klKSgCywKxGDlfZJnN2kHJTpXhldwk2XXB8M=",
         "owner": "nrs-status",
         "repo": "newFrontArmToPlane",
-        "rev": "39d1f909ce9aa6befc24b76396afdd6241f4bcdc",
+        "rev": "d5f5ef5a6ecb286228c31b9e7b3dfb14547f02a1",
         "type": "github"
       },
       "original": {
@@ -545,11 +545,11 @@
         "peachRampSkateboard": "peachRampSkateboard_9"
       },
       "locked": {
-        "lastModified": 1790160681,
-        "narHash": "sha256-2fdgmVhou2ZeyBaw6pI33v9KG4eWbOC/2wIStzNfT44=",
+        "lastModified": 1790171684,
+        "narHash": "sha256-4ys35DBFemSoVAycWGNO0aJk4QExsp6kj4B7wNzCWjk=",
         "owner": "nrs-status",
         "repo": "nasExitGiScorp",
-        "rev": "2cda6ed73767dc492387be881202303905415708",
+        "rev": "aa29d4920cb231b7b00d54bb4045d8149039b131",
         "type": "github"
       },
       "original": {
