@@ -1,4 +1,4 @@
-{ localModules, localLib, ... }:
+{ localModules, localLib, swayPkgs, ... }:
 {
   imports = [
     ../wranHearst-minimal
@@ -6,7 +6,8 @@
   ]
   ++ (with localModules; [
     #ui
-    sway
     audio
   ]);
+
+  config.environment.systemPackages = [ swayPkgs.full ];
 }
