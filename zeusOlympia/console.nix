@@ -1,7 +1,7 @@
 { pkgs, ... }:
 {
   config.console = {
-    font = "ter-132n";
+    font = "ter-124n";
     packages = with pkgs; [ terminus_font ];
   };
 }
