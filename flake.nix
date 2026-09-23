@@ -10,6 +10,7 @@
     nasExitGiScorp.url = "github:nrs-status/nasExitGiScorp";
     colmenaFlake.url = "github:zhaofengli/colmena";
     direnv-instant.url = "github:Mic92/direnv-instant";
+    bidGestMirror.url = "github:nrs-status/bidGestMirror";
   };
 
   outputs =
@@ -26,6 +27,7 @@
       };
       newPkgs = inputs.nasExitGiScorp.packages.x86_64-linux;
       wrappedPkgs = inputs.frontArmToPlane.packages.x86_64-linux;
+      swayPkgs = inputs.bidGestMirror.packages.x86_64-linux;
       specialArgs = {
         inherit
           pkgsLib
@@ -33,6 +35,7 @@
           localLib
           newPkgs
           wrappedPkgs
+          swayPkgs
           ;
         frontArmToPlane = inputs.frontArmToPlane; # for adding to the registry and specifying the default shell in sway
         peachRampSkateboard = inputs.peachRampSkateboard; # for adding to the registry
