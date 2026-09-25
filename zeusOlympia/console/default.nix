@@ -31,11 +31,39 @@ let
     keycode 183 = F13
     EOF
   '';
+
+  # A console bitmap font based on ter-128n (14x28, all 256 original glyphs
+  # and unicode-table entries preserved) with three appended "status" glyphs
+  # in the otherwise-unused slots 256..258 (PSF fonts may hold up to 512
+  # glyphs), so the tmux status bar can display icons for RAM, CPU and
+  # battery while inside the virtual console:
+  #
+  #   U+E100  CPU      (chip with pins)
+  #   U+E101  RAM      (memory stick)
+  #   U+E102  battery
+  #
+  # Private-use codepoints were chosen deliberately: the kernel console
+  # resolves UTF-8 input through the font's unicode map, and tmux measures
+  # private-use characters as single-width, so the status-bar layout stays
+  # intact. The generation script (mkstatusfont.py) is also what documents
+  # the pixel art of the three glyphs.
+  statusGlyphsFont = pkgs.runCommand "ter-glyphs-consolefont"
+    {
+      nativeBuildInputs = [ pkgs.python3 ];
+      terminus = pkgs.terminus_font;
+    }
+    ''
+    mkdir -p $out/share/consolefonts
+    python3 ${./mkstatusfont.py} $terminus/share/consolefonts/ter-128n.psf.gz $out/share/consolefonts/ter-glyphs-128n.psf
+    gzip -n $out/share/consolefonts/ter-glyphs-128n.psf
+  '';
 in
 {
   config.console = {
-    font = "ter-128n";
-    packages = [ pkgs.terminus_font voiceInputConsoleKeyMap ];
+    # ter-glyphs-128n is ter-128n plus the status glyphs above, so the
+    # console looks exactly as before while the icons become available.
+    font = "ter-glyphs-128n";
+    packages = [ pkgs.terminus_font statusGlyphsFont voiceInputConsoleKeyMap ];
     keyMap = "voice-input";
   };
 }

@@ -72,6 +72,9 @@
           media-vm-test = import ./kaounSlidesTotem/media-test (
             builtins.removeAttrs testArgs [ "sopsFlake" ]
           );
+          console-glyphs-vm-test = import ./kaounSlidesTotem/console-glyphs-test (
+            builtins.removeAttrs testArgs [ "sopsFlake" "impermanenceFlake" ]
+          );
         };
 
       colmenaHive = inputs.colmenaFlake.lib.makeHive (
