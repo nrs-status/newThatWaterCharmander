@@ -25,6 +25,7 @@
     fzf
     btrfs-progs # utils for btrfs
     postgresql
+    inotify-tools #for inotifywait
 
     #replacements for standard unix tools
     miller # replaces awk/sed/cut for structured data editing
