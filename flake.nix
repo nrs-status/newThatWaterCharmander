@@ -69,6 +69,9 @@
           forgejo-vm-test = import ./kaounSlidesTotem/forgejo-test (
             builtins.removeAttrs testArgs [ "sopsFlake" ]
           );
+          xandikos-vm-test = import ./kaounSlidesTotem/xandikos-test (
+            builtins.removeAttrs testArgs [ "sopsFlake" ]
+          );
           media-vm-test = import ./kaounSlidesTotem/media-test (
             builtins.removeAttrs testArgs [ "sopsFlake" ]
           );

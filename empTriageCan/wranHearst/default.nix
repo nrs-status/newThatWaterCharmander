@@ -12,5 +12,6 @@
     openBao
     postgresql
     vaultWarden
+    xandikos
   ]);
 }
