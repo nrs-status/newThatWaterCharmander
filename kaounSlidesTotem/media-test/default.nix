@@ -528,6 +528,60 @@ pkgs.testers.runNixOSTest {
     )
     machine.succeed("runuser -u jellyfin -- cat /srv/media/tv/.e2e-ytdl >/dev/null")
 
+    # ---------------------------------------------------------------
+    # ytdl-sub show-directory writability: ytdl-sub validates that it can
+    # write into EVERY subscription's show directory before downloading
+    # anything, and aborts the whole run when one of them is not writable
+    # ("ytdl-sub does not have write permissions to the output directory:
+    # ..."). A show directory left over from an earlier configuration —
+    # when the subscriptions ran under a different service user — is owned
+    # by that user with a 0755 mode, so every scheduled run failed during
+    # validation before any channel was downloaded and only the one channel
+    # whose directory the current setup had created ever showed up in
+    # Jellyfin. The module re-asserts group + group-writability of the whole
+    # TV library via systemd-tmpfiles (10-media-ytdl-sub.conf), so ytdl-sub
+    # (primary group media) can always work in the show directories no
+    # matter who owns them. Reproduce the stale state, verify the rule heals
+    # it, and verify ytdl-sub can again do what a download run does (extend
+    # the download archive, create season dirs and episode files).
+    # ---------------------------------------------------------------
+    conf = machine.succeed("cat /etc/tmpfiles.d/10-media-ytdl-sub.conf")
+    assert "/srv/media/tv" in conf and "'Z'" in conf, conf
+
+    machine.succeed("mkdir -p '/srv/media/tv/Pezle/Season 2024'")
+    machine.succeed("printf old > '/srv/media/tv/Pezle/Season 2024/episode.mp4'")
+    # stale directory: owned by another service user, not group-writable
+    machine.succeed("chown -R seerr:media '/srv/media/tv/Pezle'")
+    machine.succeed("chmod -R go-w '/srv/media/tv/Pezle'")
+    # exactly the check that used to kill the whole run
+    machine.fail(
+        "runuser -u ytdl-sub -- sh -c 'printf new >> \"/srv/media/tv/Pezle/Season 2024/episode.mp4\"'"
+    )
+
+    # the same thing nixos-rebuild switch / every boot runs
+    machine.succeed("systemd-tmpfiles --create 10-media-ytdl-sub.conf")
+    stale = machine.succeed(
+        "stat -c '%U:%G %a' /srv/media/tv/Pezle '/srv/media/tv/Pezle/Season 2024/episode.mp4'"
+    )
+    for line in stale.strip().splitlines():
+        owner, mode = line.split()
+        assert owner.endswith(":media"), f"stale dir not healed (group): {line}"
+        assert int(mode, 8) & 0o020, f"stale dir not healed (group-writable): {line}"
+    # the library root's owner must be untouched by the rule
+    assert (
+        machine.succeed("stat -c '%U' /srv/media/tv").strip() == "sonarr"
+    ), "the tmpfiles rule must not change the library root's owner"
+
+    machine.succeed(
+        "runuser -u ytdl-sub -- sh -c 'printf new >> \"/srv/media/tv/Pezle/Season 2024/episode.mp4\"'"
+    )
+    machine.succeed(
+        "runuser -u ytdl-sub -- sh -c 'umask 0002; mkdir \"/srv/media/tv/Pezle/Season 2025\""
+        " && printf x > \"/srv/media/tv/Pezle/Season 2025/episode2.mp4\""
+        " && printf {} > \"/srv/media/tv/Pezle/.ytdl-sub-Pezle-download-archive.json\"'"
+    )
+    machine.succeed("rm -rf /srv/media/tv/Pezle")
+
     # the unprivileged bootstrap can read the *arr API keys (the reason it
     # used to need root) and owns its marker directory
     for keyfile in [

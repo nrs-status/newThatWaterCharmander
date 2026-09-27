@@ -928,6 +928,38 @@ in
   # keep downloaded files group-writable like the rest of the stack
   systemd.services."ytdl-sub-youtube_tv".serviceConfig.UMask = "0002";
 
+  # ytdl-sub validates that it can write to every subscription's show
+  # directory *before* downloading anything and aborts the entire run when
+  # one of them is not writable ("ytdl-sub does not have write permissions
+  # to the output directory: ..."). Show directories it creates itself are
+  # fine (the service runs as ytdl-sub:media with umask 0002), but
+  # directories left over from earlier configurations — when the
+  # subscriptions ran under a different service user — stay owned by that
+  # user with a 0755 mode, and then every scheduled run fails during
+  # validation *before any channel is downloaded*: only the one channel
+  # whose directory the current setup had created ever showed up in
+  # Jellyfin, even though all subscribed channels are configured.
+  # Heal that by re-asserting the library's group + group-writability on
+  # every boot and activation (nixos-rebuild switch runs systemd-tmpfiles
+  # --create): everything under the TV library is group `media` and 0775,
+  # so ytdl-sub can always work in the show directories no matter who owns
+  # them.
+  # The rule deliberately targets ${mediaRoot}/tv itself instead of the
+  # individual show directories: systemd-tmpfiles refuses to even open a
+  # rule's target when walking it crosses an ownership change between two
+  # non-root users ("Detected unsafe path transition ... during
+  # canonicalization", e.g. sonarr-owned library root → seerr-owned show
+  # dir — which is exactly the stale state to heal), and show directories
+  # owned by ytdl-sub under sonarr's library root would hit the same
+  # guard. The library root itself is reachable (root-owned parents →
+  # sonarr-owned library root is an allowed transition), and its recursive
+  # walk applies the rule to the whole tree without per-entry checks.
+  systemd.tmpfiles.settings."10-media-ytdl-sub"."${mediaRoot}/tv".Z = {
+    mode = "0775";
+    user = "-";
+    group = mediaGroup;
+  };
+
   # ---------------------------------------------------------------------
   # Seerr (services.jellyseerr is the renamed-option alias of
   # services.seerr): request management UI in front of Sonarr/Radarr
