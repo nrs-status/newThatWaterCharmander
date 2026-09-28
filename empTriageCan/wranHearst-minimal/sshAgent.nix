@@ -30,9 +30,7 @@ let
 
   #the SSH private keys declared in ./sops.nix; sops-nix decrypts them to
   #/run/secrets/<name> (owned by root, mode 0600, see the declaration there)
-  sshSecrets = pkgsLib.filterAttrs (
-    name: _: pkgsLib.hasPrefix "ssh/" name
-  ) config.sops.secrets;
+  sshSecrets = pkgsLib.filterAttrs (name: _: pkgsLib.hasPrefix "ssh/" name) config.sops.secrets;
   keyPaths = map (secret: secret.path) (pkgsLib.attrValues sshSecrets);
 
   agentRuntimeDir = "/run/sopsSSHAgent";
@@ -49,7 +47,10 @@ in
 
   systemd.services.sopsSSHAgent = {
     description = "ssh-agent holding the sops-nix SSH keys for ${user}";
-    documentation = [ "man:ssh-agent(1)" "man:ssh-add(1)" ];
+    documentation = [
+      "man:ssh-agent(1)"
+      "man:ssh-add(1)"
+    ];
     wantedBy = [ "multi-user.target" ];
     #the decrypted key files must exist before the agent tries to load them
     after = [ sopsUnit ];
@@ -75,12 +76,14 @@ in
       #read them (see the comment at the top of this file).  A missing or
       #unloadable key fails the service loudly (the list itself is also
       #asserted non-empty at build time, see the assertion above).
-      ExecStartPost = "+" + (pkgs.writeShellScript "sopsSSHAgent-addKeys" ''
-        set -eu
-        for key in ${pkgsLib.escapeShellArgs keyPaths}; do
-          ${pkgs.openssh}/bin/ssh-add "$key"
-        done
-      '');
+      ExecStartPost =
+        "+"
+        + (pkgs.writeShellScript "sopsSSHAgent-addKeys" ''
+          set -eu
+          for key in ${pkgsLib.escapeShellArgs keyPaths}; do
+            ${pkgs.openssh}/bin/ssh-add "$key"
+          done
+        '');
       Restart = "on-failure";
       RestartSec = "5s";
     };
@@ -90,4 +93,31 @@ in
   #/etc/set-environment, systemd user sessions via its environment
   #generator); ssh(1) then uses the agent without further configuration
   environment.sessionVariables.SSH_AUTH_SOCK = agentSocket;
+
+  # SSH client policy for reaching the agent hosts (augtibcalcla, lanchamarcou)
+  # by their bare names.
+  #
+  # Why this exists: the agent hosts are enrolled in the headscale tailnet (see
+  # ../headscale), and the bare names resolve through resolv.conf's search
+  # domains - the tailnet domain is tried first (`augtibcalcla` ->
+  # `augtibcalcla.tailnet.internal` -> 100.64.0.3). While the tailnet data path
+  # is healthy that is fine, but when it is down (e.g. tailscaled wedged in its
+  # "TLS forced" control-dial state after the LAN router started publishing
+  # broken link-local AAAA records for the `.home` names, as it did on
+  # 2026-09-16) ssh would hang on the dead 100.64.0.x address instead of
+  # reaching the host over the LAN.
+  #
+  # These entries resolve the agents to their router-DNS LAN names instead,
+  # which always have working A records (the router serves them from its DHCP
+  # leases and tracks address changes; no hardcoded IPs). AddressFamily inet
+  # never picks the router's broken fe80:: AAAA records.
+  programs.ssh.extraConfig = ''
+    Host augtibcalcla
+      HostName augtibcalcla.home
+      AddressFamily inet
+
+    Host lanchamarcou
+      HostName lanchamarcou.home
+      AddressFamily inet
+  '';
 }
