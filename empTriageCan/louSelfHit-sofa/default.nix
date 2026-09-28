@@ -1,7 +1,7 @@
 { localLib, ... }:
 {
   imports = [
-    ../heg-tweOnPlant
+    ../heg-twPlant
     (localLib.mkDirectoryImporterModule ./.)
   ];
 }
