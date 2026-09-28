@@ -41,7 +41,7 @@ in
     ];
   };
 
-  #the rest of this section sets up a host-specific secrets file
+################the rest of this file sets up a host-specific secrets file
 
   environment.persistence."/persist".files = [ "/etc/kierLeapMount/secrets.yaml" "/etc/kierLeapMount/.sops.yaml" ];
 

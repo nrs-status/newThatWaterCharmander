@@ -17,7 +17,7 @@
   };
 
   config = {
-    time.timeZone = "America/Toronto"; # IANA zone covering Montreal (America/Montreal is a legacy alias of it)
+    time.timeZone = "America/Toronto"; 
 
     environment = {
       variables = {
