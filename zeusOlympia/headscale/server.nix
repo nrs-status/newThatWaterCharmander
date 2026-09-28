@@ -42,7 +42,7 @@ let
   parseKey = ''${jq} -r .key'';
 in
 {
-  config = lib.mkIf isServer {
+  config = lib.mkIf (cfg.enable && isServer) {
     services.headscale = {
       enable = true;
 

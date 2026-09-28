@@ -7,9 +7,36 @@
 # every enrolled node gets the FQDN `<hostname>.tailnet.internal`; wranHearst's
 # services are therefore reachable at wranHearst.tailnet.internal:<port> from
 # any enrolled host (replacing the old mDNS name wranHearst.local).
+#
+# Master switch: `tailnet.enable` (default false). When disabled, ./server.nix
+# and ./client.nix configure nothing (no headscale, no tailscaled, no
+# enrollment units, no firewall ports, no persisted state), and `magicFqdn`
+# falls back to the server's router-DNS LAN name
+# (`<serverHostName>.<lanDomain>`, e.g. wranHearst.home) so every consumer
+# (forgejo, openBao, k3s, telegraf, the nix substituter, ...) keeps a
+# resolvable address. Re-enable with `tailnet.enable = true;` (set in
+# empTriageCan/heg-twPlant/default.nix for all hosts).
 { config, lib, ... }:
 {
   options.tailnet = {
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Whether to run the headscale tailnet (headscale server on
+        serverHostName, tailscale clients everywhere else). When false,
+        magicFqdn resolves to the server's LAN name instead of MagicDNS.
+      '';
+    };
+
+    # router-DNS domain of the LAN (unicast DNS from the router's DHCP
+    # leases); used for magicFqdn while the tailnet is disabled
+    lanDomain = lib.mkOption {
+      type = lib.types.str;
+      default = "home";
+      description = "LAN (router DNS) domain used when the tailnet is disabled.";
+    };
+
     # host that runs the headscale coordination server
     serverHostName = lib.mkOption {
       type = lib.types.str;
@@ -27,11 +54,17 @@
       '';
     };
 
-    # convenience: the coordination server's own MagicDNS FQDN
+    # convenience: the name under which the coordination server (wranHearst)
+    # is reached: its MagicDNS FQDN when the tailnet is enabled, otherwise
+    # its router-DNS LAN name
     magicFqdn = lib.mkOption {
       type = lib.types.str;
       readOnly = true;
-      description = "MagicDNS FQDN of the coordination server.";
+      description = ''
+        FQDN of the coordination server: `<serverHostName>.<baseDomain>`
+        (MagicDNS) when tailnet.enable is true, otherwise
+        `<serverHostName>.<lanDomain>` (router DNS).
+      '';
     };
 
     # URL remote clients use to reach the coordination server *before* they
@@ -74,5 +107,8 @@
   };
 
   config.tailnet.magicFqdn =
-    "${config.tailnet.serverHostName}.${config.tailnet.baseDomain}";
+    if config.tailnet.enable then
+      "${config.tailnet.serverHostName}.${config.tailnet.baseDomain}"
+    else
+      "${config.tailnet.serverHostName}.${config.tailnet.lanDomain}";
 }

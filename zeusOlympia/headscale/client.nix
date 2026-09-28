@@ -22,7 +22,7 @@ let
   isServer = config.networking.hostName == cfg.serverHostName;
 in
 {
-  config = lib.mkIf (!isServer) {
+  config = lib.mkIf (cfg.enable && !isServer) {
     services.tailscale = {
       enable = true;
       # accept incoming wireguard traffic over the LAN (direct connections,

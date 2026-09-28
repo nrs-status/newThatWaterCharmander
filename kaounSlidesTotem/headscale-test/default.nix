@@ -61,6 +61,7 @@ pkgs.testers.runNixOSTest {
         networking.hostName = "wranHearst";
         # clients enroll via this URL before they have MagicDNS; in the real
         # LAN the default is the router-DNS name (wranHearst.home)
+        tailnet.enable = true; # the module set is disabled by default
         tailnet.serverUrl = "http://${config.networking.primaryIPAddress}:8080";
 
         # sops stand-ins for the host setup (see ../../zeusOlympia/security):
@@ -134,6 +135,7 @@ pkgs.testers.runNixOSTest {
           ../../zeusOlympia/headscale
         ];
         networking.hostName = "augtibcalcla";
+        tailnet.enable = true; # the module set is disabled by default
         tailnet.serverUrl = "http://${nodes.wranHearst.networking.primaryIPAddress}:8080";
       } // vmResources;
 
@@ -146,6 +148,7 @@ pkgs.testers.runNixOSTest {
           ../../zeusOlympia/headscale
         ];
         networking.hostName = "lanchamarcou";
+        tailnet.enable = true; # the module set is disabled by default
         tailnet.serverUrl = "http://${nodes.wranHearst.networking.primaryIPAddress}:8080";
       } // vmResources;
   };
