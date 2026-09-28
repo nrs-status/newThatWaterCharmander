@@ -11,6 +11,7 @@
         "smithShirtCube"
         "afg-ichigoGest"
         "mobSitChi"
+        "afroHagglesRaccoonHat"
       ]
       ++ config.miscStaticVals.sharedPersistedUserDirs;
 

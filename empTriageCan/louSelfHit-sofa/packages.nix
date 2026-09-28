@@ -26,6 +26,7 @@
     btrfs-progs # utils for btrfs
     postgresql
     inotify-tools #for inotifywait
+    usbutils #has lsusb which was able to detect meta quest 3 on usb while lsblk did not show it
 
     #replacements for standard unix tools
     miller # replaces awk/sed/cut for structured data editing
