@@ -926,8 +926,6 @@ in
       "Mahesh Shenoy" = "https://www.youtube.com/@Mahesh_Shenoy/videos";
       "3Blue1Brown" = "https://www.youtube.com/@3blue1brown/videos";
       "Vsauce" = "https://www.youtube.com/@Vsauce/videos";
-      # "Styropro" has no channel of that name on YouTube; it is the
-      # @styropyro channel (verified: @Styropro returns 404)
       "styropyro" = "https://www.youtube.com/@styropyro/videos";
     };
   };
