@@ -14,6 +14,7 @@
         "afroHagglesRaccoonHat"
         "pikaExpPianoKey" 
         ".local/share/bottles" 
+        ".local/share/Anki2" 
       ]
       ++ config.miscStaticVals.sharedPersistedUserDirs;
 
