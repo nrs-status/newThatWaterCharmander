@@ -12,6 +12,8 @@
         "afg-ichigoGest"
         "mobSitChi"
         "afroHagglesRaccoonHat"
+        "pikaExpPianoKey" 
+        ".local/share/bottles" 
       ]
       ++ config.miscStaticVals.sharedPersistedUserDirs;
 
