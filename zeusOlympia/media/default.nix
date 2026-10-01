@@ -927,6 +927,9 @@ in
       "3Blue1Brown" = "https://www.youtube.com/@3blue1brown/videos";
       "Vsauce" = "https://www.youtube.com/@Vsauce/videos";
       "styropyro" = "https://www.youtube.com/@styropyro/videos";
+      "Nookrium" = "https://www.youtube.com/@Nookrium";
+      "Civil Defense Engineer" = "https://www.youtube.com/@CivilDefenseEngineer";
+      "Low Level" = "https://www.youtube.com/@LowLevelTV";
     };
   };
   # keep downloaded files group-writable like the rest of the stack
