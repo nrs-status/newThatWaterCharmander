@@ -46,6 +46,11 @@ pkgs.testers.runNixOSTest {
 
       networking.hostName = "mediaTestVm";
 
+      # the media module is self-gating via `media.enable` (default false, so
+      # it can be disabled per host even while imported); the VM test exists
+      # to exercise it, so it is enabled here explicitly
+      media.enable = true;
+
       environment.persistence."/persist".hideMounts = true;
 
       virtualisation = {
