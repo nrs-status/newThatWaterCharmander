@@ -63,8 +63,11 @@
             btrfs subvolume delete "$1"
         }
 
-        for i in $(find /btrfs_tmp/old_roots/ -maxdepth 1 -mtime +30); do
-            delete_subvolume_recursively "$i"
+        # keep only the 50 most recent boots (sorted by mtime, newest first;
+        # the timestamp names are not zero-padded for day/hour so lexical
+        # sort order does not match chronological order)
+        ls -1t /btrfs_tmp/old_roots/ | tail -n +51 | while read -r i; do
+            delete_subvolume_recursively "/btrfs_tmp/old_roots/$i"
         done
 
         btrfs subvolume create /btrfs_tmp/@

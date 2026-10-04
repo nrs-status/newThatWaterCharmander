@@ -13,6 +13,7 @@
         "mobSitChi"
         "afroHagglesRaccoonHat"
         "pikaExpPianoKey" 
+        "lacDrownsMerc"
         ".local/share/bottles" 
         ".local/share/Anki2" 
       ]
