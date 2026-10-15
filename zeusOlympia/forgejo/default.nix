@@ -6,8 +6,16 @@
 }:
 let
   forgejoPort = 3000;
-  cfg = config.services.forgejo;
-  forgejoCmd = lib.getExe cfg.package;
+
+  # Master switch for the whole forgejo module (same pattern as
+  # media.enable / tailnet.enable / kubernetes.enable): every declaration
+  # below is gated with `lib.mkIf cfg.enable`, so setting
+  # `forgejo.enable = false;` (the default) disables the module entirely even
+  # when it is imported — no service, no password-generation unit, no CLI
+  # wrapper, no firewall port and no impermanence entries.
+  cfg = config.forgejo;
+  svc = config.services.forgejo;
+  forgejoCmd = lib.getExe svc.package;
 
   # accounts to ensure: the administrator followed by the regular users
   # (note: forgejo forbids an account literally named "admin", so the
@@ -24,7 +32,7 @@ let
   # this repo's sops secrets file starts out empty and is filled at boot with
   # a host-derived key (see ../security), so random passwords cannot be
   # provisioned declaratively; they are generated on first boot instead
-  passwordDir = "${cfg.stateDir}/user-passwords";
+  passwordDir = "${svc.stateDir}/user-passwords";
 
   # appended to the forgejo module's own preStart (which writes app.ini and
   # runs migrations): ensure the accounts exist. the || true mirrors the
@@ -40,6 +48,9 @@ let
   '';
 in
 {
+  options.forgejo.enable = lib.mkEnableOption "the forgejo git service";
+
+  config = lib.mkIf cfg.enable {
   services.forgejo = {
     enable = true;
 
@@ -77,8 +88,8 @@ in
     serviceConfig = {
       Type = "oneshot";
       UMask = "0077";
-      User = cfg.user;
-      Group = cfg.group;
+      User = svc.user;
+      Group = svc.group;
     };
     script = ''
       mkdir -p ${passwordDir}
@@ -114,19 +125,20 @@ in
   # straight at the unwrapped store-path binary.
   environment.systemPackages = lib.singleton (pkgs.writeShellScriptBin "forgejo" ''
     exec env \
-      FORGEJO_WORK_DIR=${cfg.stateDir} \
-      FORGEJO_CUSTOM=${cfg.customDir} \
-      ${lib.getExe cfg.package} --config ${cfg.customDir}/conf/app.ini "$@"
+      FORGEJO_WORK_DIR=${svc.stateDir} \
+      FORGEJO_CUSTOM=${svc.customDir} \
+      ${lib.getExe svc.package} --config ${svc.customDir}/conf/app.ini "$@"
   '');
 
   # wranHearst runs impermanence (root is wiped on reboot), so forgejo's state
   # (repositories, database, LFS objects, user-passwords) must be persisted
   # explicitly; declared here, inside the service module (same pattern as
   # ../garage, ../openBao, ../vaultWarden, ../kubernetes)
-  environment.persistence."/persist".directories = [ cfg.stateDir ];
+  environment.persistence."/persist".directories = [ svc.stateDir ];
 
   # advertise the forgejo web UI over the headscale tailnet (see
   # ../headscale): it is reachable at ${config.tailnet.magicFqdn}:${toString forgejoPort}
   # from every enrolled host (augtibcalcla, lanchamarcou) via MagicDNS. the
   # old mDNS/Avahi advertisement (_http._tcp via services.avahi) was removed.
+  };
 }

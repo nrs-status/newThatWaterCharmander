@@ -1,12 +1,24 @@
 {
+  lib,
   config,
   pkgs,
   ...
 }:
 let
   vaultwardenPort = 8222;
+
+  # Master switch for the whole vaultwarden module (same pattern as
+  # media.enable / tailnet.enable / kubernetes.enable): every declaration
+  # below is gated with `lib.mkIf cfg.enable`, so setting
+  # `vaultwarden.enable = false;` (the default) disables the module entirely
+  # even when it is imported — no service, no postgres database/role, no sops
+  # secret/template, no firewall port and no impermanence entries.
+  cfg = config.vaultwarden;
 in
 {
+  options.vaultwarden.enable = lib.mkEnableOption "the vaultwarden password vault";
+
+  config = lib.mkIf cfg.enable {
   services.vaultwarden = {
     enable = true;
     package = pkgs.vaultwarden;
@@ -102,4 +114,5 @@ in
   # vaultwarden is reachable over the headscale tailnet (see ../headscale) as
   # wranHearst.tailnet.internal; the old mDNS (_http._tcp via services.avahi)
   # advertisement was removed
+  };
 }

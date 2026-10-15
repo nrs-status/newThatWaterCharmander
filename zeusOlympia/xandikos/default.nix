@@ -1,12 +1,24 @@
 {
+  lib,
   config,
   pkgs,
   ...
 }:
 let
   xandikosPort = 8330;
+
+  # Master switch for the whole xandikos module (same pattern as
+  # media.enable / tailnet.enable / kubernetes.enable): every declaration
+  # below is gated with `lib.mkIf cfg.enable`, so setting
+  # `xandikos.enable = false;` (the default) disables the module entirely
+  # even when it is imported — no service, no firewall port and no
+  # impermanence entries.
+  cfg = config.xandikos;
 in
 {
+  options.xandikos.enable = lib.mkEnableOption "the xandikos CalDAV/CardDAV server";
+
+  config = lib.mkIf cfg.enable {
   services.xandikos = {
     enable = true;
     package = pkgs.xandikos;
@@ -48,4 +60,5 @@ in
   # xandikos is reachable over the headscale tailnet (see ../headscale) at
   # wranHearst.tailnet.internal:${toString xandikosPort}; the same pattern as
   # ../forgejo, ../garage, ../harmonia
+  };
 }

@@ -35,7 +35,10 @@
     };
   };
 
-  networking.firewall.allowedTCPPorts = [ 5000 ];
+  # port 5000 closed off: harmonia still listens on loopback-only effective
+  # reach (see bind above) but the firewall no longer exposes it to the
+  # LAN/tailnet; re-add the port here to serve the cache again
+  # networking.firewall.allowedTCPPorts = [ 5000 ];
 
   # the cache is reachable over the headscale tailnet (see ../headscale) at
   # wranHearst.tailnet.internal; the old mDNS (_nix-cache._tcp via

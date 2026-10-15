@@ -28,6 +28,11 @@ pkgs.testers.runNixOSTest {
 
       networking.hostName = "xandikosTestVm";
 
+      # the xandikos module is self-gating via `xandikos.enable` (default
+      # false, same pattern as media.enable); enable it so the module under
+      # test is actually exercised
+      xandikos.enable = true;
+
       virtualisation = {
         graphics = false;
         memorySize = 2048;

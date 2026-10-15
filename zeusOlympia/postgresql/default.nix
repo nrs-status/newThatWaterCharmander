@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ lib, config, pkgs, ... }:
 let
   # credentials for the telegraf telemetry stream (see ../telegraf): the
   # agent hosts augtibcalcla / lanchamarcou insert into this database
@@ -17,8 +17,19 @@ let
   piStreamSchema =
     pkgs.writeText "pi-stream-schema.sql" (builtins.readFile ./pi-stream-schema.sql);
   psql = "${pkgs.postgresql}/bin/psql";
+
+  # Master switch for the whole postgresql module (same pattern as
+  # media.enable / tailnet.enable / kubernetes.enable): every declaration
+  # below is gated with `lib.mkIf cfg.enable`, so setting
+  # `postgresql.enable = false;` (the default) disables the module entirely
+  # even when it is imported — no server, no schemas unit, no firewall port
+  # and no impermanence entries.
+  cfg = config.postgresql;
 in
 {
+  options.postgresql.enable = lib.mkEnableOption "the wranHearst postgresql server";
+
+  config = lib.mkIf cfg.enable {
   services.postgresql = {
     enable = true;
 
@@ -127,4 +138,5 @@ in
   # postgresql is reachable over the headscale tailnet (see ../headscale) as
   # wranHearst.tailnet.internal; the old mDNS (_postgresql._tcp via
   # services.avahi) advertisement was removed
+  };
 }

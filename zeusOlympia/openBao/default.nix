@@ -1,12 +1,24 @@
 {
+  lib,
   pkgs,
   config,
   ...
 }:
 let
   openBaoPort = 8200;
+
+  # Master switch for the whole openbao module (same pattern as
+  # media.enable / tailnet.enable / kubernetes.enable): every declaration
+  # below is gated with `lib.mkIf cfg.enable`, so setting
+  # `openbao.enable = false;` (the default) disables the module entirely even
+  # when it is imported — no service, no firewall ports and no impermanence
+  # entries.
+  cfg = config.openbao;
 in
 {
+  options.openbao.enable = lib.mkEnableOption "the openbao secrets server";
+
+  config = lib.mkIf cfg.enable {
   services.openbao = {
     enable = true;
     package = pkgs.openbao;
@@ -56,4 +68,5 @@ in
   # openbao is reachable over the headscale tailnet (see ../headscale) as
   # wranHearst.tailnet.internal; the old mDNS (_openbao._tcp via
   # services.avahi) advertisement was removed
+  };
 }

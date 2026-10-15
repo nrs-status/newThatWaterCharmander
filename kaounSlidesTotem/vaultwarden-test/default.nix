@@ -65,6 +65,11 @@ pkgs.testers.runNixOSTest {
 
       networking.hostName = "vaultwardenTestVm";
 
+      # the vaultwarden module is self-gating via `vaultwarden.enable`
+      # (default false, same pattern as media.enable); enable it so the module
+      # under test is actually exercised
+      vaultwarden.enable = true;
+
       # stand-ins for the wranHearst host setup: the encrypted secrets file
       # takes the place of the imperatively added /etc/kierLeapMount/secrets.yaml
       environment.etc."kierLeapMount/secrets.yaml".source = "${testSecrets}/secrets.yaml";

@@ -1,4 +1,5 @@
 {
+  lib,
   config,
   pkgs,
   ...
@@ -10,8 +11,19 @@ let
   # MagicDNS base domain of the headscale tailnet (see ../headscale); guarded
   # so standalone imports (e.g. the garage VM test) still evaluate
   tailnetBaseDomain = if config ? tailnet then config.tailnet.baseDomain else "garage.local";
+
+  # Master switch for the whole garage module (same pattern as media.enable /
+  # tailnet.enable / kubernetes.enable): every declaration below is gated
+  # with `lib.mkIf cfg.enable`, so setting `garage.enable = false;` (the
+  # default) disables the module entirely even when it is imported — no
+  # service, no sops secrets/templates, no layout bootstrap unit, no firewall
+  # ports and no impermanence entries.
+  cfg = config.garage;
 in
 {
+  options.garage.enable = lib.mkEnableOption "the garage S3 object store";
+
+  config = lib.mkIf cfg.enable {
   services.garage = {
     enable = true;
     package = pkgs.garage;
@@ -173,4 +185,5 @@ in
   # lanchamarcou / augtibcalcla are enrolled into the tailnet and resolve the
   # host via MagicDNS instead of the old mDNS name wranHearst.local
   # (same pattern as ../postgresql, ../forgejo, ../harmonia)
+  };
 }

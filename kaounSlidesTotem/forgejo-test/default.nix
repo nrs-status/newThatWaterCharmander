@@ -47,6 +47,11 @@ pkgs.testers.runNixOSTest {
 
       networking.hostName = "forgejoTestVm";
 
+      # the forgejo module is self-gating via `forgejo.enable` (default false,
+      # same pattern as media.enable); enable it so the module under test is
+      # actually exercised
+      forgejo.enable = true;
+
       environment.persistence."/persist".hideMounts = true;
 
       virtualisation = {
