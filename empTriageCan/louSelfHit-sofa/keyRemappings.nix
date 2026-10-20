@@ -60,7 +60,7 @@ in
               # overloadt remaps below while it is active
               "${cfg.lhsHomerowToggleKey}" = "toggle(lhsOff)";
 
-              "a" = "overloadt(meta, a, 130)";
+              "a" = "overloadt(meta, a, 150)";
               "s" = "overloadt(alt, s, 130)";
               "d" = "overloadt(control, d, 130)";
               "f" = "overloadt(shift, f, 130)";
